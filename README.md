@@ -37,18 +37,18 @@ inference remain unverified. Historical 0.1 Linux-runtime archives are supersede
 
 ## Install for Claude Code
 
-Obtain the prebuilt `beads-viewer-0.2.0-claude-code.zip` from the builder and extract
+Obtain the prebuilt `beads-viewer-0.2.1-claude-code.zip` from the builder and extract
 it with your OS archive utility. No public release URL is configured yet. Start
 Claude with the extracted **plugin root**:
 
 ```sh
-claude --plugin-dir "/absolute/path/to/beads-viewer-0.2.0-claude-code"
+claude --plugin-dir "/absolute/path/to/beads-viewer-0.2.1-claude-code"
 ```
 
 For a package generated locally, from the project root:
 
 ```sh
-claude --plugin-dir "./artifacts/beads-viewer-0.2.0-claude-code"
+claude --plugin-dir "./artifacts/beads-viewer-0.2.1-claude-code"
 ```
 
 The archive root is also the plugin root; compatible Claude versions document ZIP
@@ -70,7 +70,7 @@ Before opening a broker, the bootstrap checks Node/SQLite and installed Beads. T
 run only those checks:
 
 ```sh
-node "/absolute/path/to/beads-viewer-0.2.0-claude-code/launch.cjs" --check
+node "/absolute/path/to/beads-viewer-0.2.1-claude-code/launch.cjs" --check
 ```
 
 If Node itself is missing, JavaScript cannot run: the launch skill/host startup

@@ -80,7 +80,7 @@ or entire environments.
 ## Packaging and state
 
 `npm run package:plugin` builds one experimental Claude artifact from prebuilt files:
-`artifacts/beads-viewer-0.2.0-claude-code.zip`. Its archive root is the plugin root,
+`artifacts/beads-viewer-0.2.1-claude-code.zip`. Its archive root is the plugin root,
 usable after extraction or through a compatible host's documented ZIP loader.
 A generated local marketplace is also staged at
 `artifacts/beads-viewer-local-marketplace`, with the host adapter at

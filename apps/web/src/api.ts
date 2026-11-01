@@ -27,7 +27,7 @@ export async function api<T>(
 		throw new Error(body.error || `Request failed (${response.status})`);
 	return body;
 }
-export async function authenticate() {
+export async function authenticate(): Promise<{ connectionId: string }> {
 	const fragment = new URLSearchParams(location.hash.slice(1)),
 		credential = fragment.get("launch");
 	// Remove one-time credential before any API request, leaving paths/preferences out of the URL.
@@ -52,6 +52,7 @@ export async function authenticate() {
 				csrf: string;
 			}>("/session")
 		).csrf;
+	return { connectionId };
 }
 export const snapshot = () => api<Snapshot>("/snapshot");
 export const detail = (workspace: string, task: string) =>

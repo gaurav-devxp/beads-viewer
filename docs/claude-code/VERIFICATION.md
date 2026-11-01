@@ -7,7 +7,7 @@ adapter remains a scaffold.
 
 ## Automated checks
 
-`npm run check` passes typechecking, ESLint, **12/12 tests** and the production
+`npm run check` passes typechecking, ESLint, **13/13 tests** and the production
 build. [check.log](evidence/portable/check.log) is the complete output. Coverage
 includes real multi-repository Beads CRUD, native ordinary comments, dependencies,
 filters, colliding task IDs, source conflicts and shell-safe arguments. Persistent
@@ -22,9 +22,15 @@ selection, symlinks, spaces/Unicode, Windows candidate/shim policy and real inst
 Beads version/help probes. Windows policy tests run on Linux and do not certify
 native Windows execution. ZIP tests check UTF-8 names, CRC32 and directory records.
 
+The 0.2.1 authentication regression uses the actual QueryClient and application
+authentication handlers with a simulated browser transport. It reproduces the
+original `auth` query returning undefined, then verifies successful one-use launch
+exchange, cookie-based reload, and rejection after a lost session. It does not
+claim browser rendering or real Claude inference.
+
 ## Portable package and installed dependencies
 
-The new artifact is `beads-viewer-0.2.0-claude-code.zip`, with no OS/CPU suffix.
+The new artifact is `beads-viewer-0.2.1-claude-code.zip`, with no OS/CPU suffix.
 It contains prebuilt JS/browser assets, metadata, skills, notices, SBOM and checksums.
 Node, Beads, Dolt, native launchers/addons, source tests and node_modules are absent.
 Packaging runs with PATH unavailable using an explicitly selected installed Node;

@@ -29,12 +29,12 @@ with `BV_BD_BINARY`. See the runtime guide above for safe path examples.
 
 ## Install or try the portable package
 
-Obtain the prebuilt `beads-viewer-0.2.0-claude-code.zip` from the builder and extract
+Obtain the prebuilt `beads-viewer-0.2.1-claude-code.zip` from the builder and extract
 it with the OS archive utility. There is no configured public release URL yet.
 Start a new Claude session with the extracted **plugin root**:
 
 ```sh
-claude --plugin-dir "/absolute/path/to/beads-viewer-0.2.0-claude-code"
+claude --plugin-dir "/absolute/path/to/beads-viewer-0.2.1-claude-code"
 ```
 
 A compatible Claude CLI can also load the plugin ZIP directly; actual loader
@@ -64,7 +64,7 @@ environment; do not equate component discovery with successful inference.
 To check prerequisites without opening a browser/listener:
 
 ```sh
-node "/absolute/path/to/beads-viewer-0.2.0-claude-code/launch.cjs" --check
+node "/absolute/path/to/beads-viewer-0.2.1-claude-code/launch.cjs" --check
 ```
 
 ## Persistent local marketplace

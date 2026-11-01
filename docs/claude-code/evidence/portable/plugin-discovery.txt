@@ -1,4 +1,4 @@
-beads-viewer 0.2.0
+beads-viewer 0.2.1
   Description: Local multi-repository Beads workspace with a main-conversation Claude relay.
   Source: beads-viewer@inline
 
