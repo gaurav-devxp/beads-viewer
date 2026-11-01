@@ -38,18 +38,18 @@ archives are superseded.
 
 ## Install for Claude Code
 
-Obtain the prebuilt `beads-viewer-0.3.2-claude-code.zip` from the builder and extract
+Obtain the prebuilt `beads-viewer-0.4.2-claude-code.zip` from the builder and extract
 it with your OS archive utility. No public release URL is configured yet. Start
 Claude with the extracted **plugin root**:
 
 ```sh
-claude --plugin-dir "/absolute/path/to/beads-viewer-0.3.2-claude-code"
+claude --plugin-dir "/absolute/path/to/beads-viewer-0.4.2-claude-code"
 ```
 
 For a package generated locally, from the project root:
 
 ```sh
-claude --plugin-dir "./artifacts/beads-viewer-0.3.2-claude-code"
+claude --plugin-dir "./artifacts/beads-viewer-0.4.2-claude-code"
 ```
 
 The archive root is also the plugin root; compatible Claude versions document ZIP
@@ -67,39 +67,47 @@ The MCP process keeps the viewer running; Claude remains available for other com
 Optional JSON can explicitly select additional repositories or initial filters.
 No provider API key is required by this plugin.
 
-For browser-triggered Human view generation, install through the local marketplace
-below and start Claude **in a terminal** with this plugin's channel enabled:
+### Human view
+
+Opening a task's **Human view** asks the Claude conversation that ran
+`/beads-viewer:open` for a briefing automatically and shows a spinner until it
+arrives; there is no button to click. Claude writes it in that same conversation,
+with its normal model, sign-in, permissions and usage. A briefing is requested once
+per task revision; Regenerate asks for a fresh one.
+
+The request reaches Claude through Claude Code's own
+[session inbox](https://code.claude.com/docs/en/cross-session-messaging#the-sessions-inbox-socket):
+Claude Code gives the plugin's server (a child process of the conversation) an
+inbox address, and an idle conversation starts a new turn with the message. This
+works in the terminal and in the VS Code extension (Claude Code 2.1.224 or later).
+The message carries request IDs only, never task text, and Claude treats it like a
+message from another session: it cannot approve permissions or change settings. If
+Claude is busy, it handles the request between steps of its current work. If you
+set `crossSessionInbound` to `refuse` or `hold`, or Claude has not picked a request
+up within 45 seconds, the browser shows a `/beads-viewer:brief {…}` command with a
+Copy button; paste it into the same conversation instead.
+
+Terminal users can alternatively use this plugin as a
+[Channel](https://code.claude.com/docs/en/channels-reference) (research preview):
 
 ```sh
 claude --dangerously-load-development-channels plugin:beads-viewer@beads-viewer-local
 ```
 
-Accept Claude's interactive development-channel confirmation only for this plugin.
-This is Claude's documented custom-channel preview flow, not a permission bypass.
-Organization policies may block Channels; the plugin never changes those policies.
-Then run `/beads-viewer:open` normally. The browser reports channel readiness only
-after Claude acknowledges it. Generate briefing sends one event; there is no idle
-polling. Actual generation uses a normal Claude turn, and events arriving while
-Claude is busy wait for the next turn.
+Accept the development-channel confirmation for this plugin only. Requests then
+arrive as channel events, which wait for Claude's next turn instead of joining the
+current one. The VS Code extension cannot receive channel events.
 
-The VS Code extension runs Claude without an interactive terminal, and Claude
-ignores the development-channel flag there (as documented for SDK/`-p` sessions).
-VS Code conversations therefore always use the manual command below.
-
-Without enabled Channels, Generate briefing displays a `/beads-viewer:brief` command.
-Copy it into the **same conversation** that opened the viewer to generate exactly
-one briefing and return control. This fallback also works if a channel event is
-not delivered. A parked viewer no longer expires because Claude is idle; queued
-requests wait up to 30 minutes and claimed generation has 15 minutes.
-Explicit Disconnect or exiting Claude stops new AI requests.
-See the [Claude guide](plugins/beads-viewer/claude-code/README.md) and
-[official Channels reference](https://code.claude.com/docs/en/channels-reference).
+A viewer never expires because Claude is idle. Queued requests wait up to 30
+minutes and claimed generation has 15 minutes. Disconnect or exiting Claude stops
+new requests; task editing and cached briefings keep working.
+See the [Claude guide](plugins/beads-viewer/claude-code/README.md).
 
 Before opening a broker, the bootstrap checks Node/SQLite and installed Beads. To
 run only those checks:
 
 ```sh
-node "/absolute/path/to/beads-viewer-0.3.2-claude-code/launch.cjs" --check
+node "/absolute/path/to/beads-viewer-0.4.2-claude-code/launch.cjs" --check
 ```
 
 If Node itself is missing, JavaScript cannot run: the launch skill/host startup

@@ -216,9 +216,18 @@ test("MCP opens without polling, acknowledges channels and completes exact reque
 				throw new Error("Simulated channel transport failure");
 			return send(message, options);
 		};
+		// A channel connection whose event cannot be written falls back to the command.
+		const undelivered = app.bridge.enqueue(opened.connection.id, {
+			...task,
+			revision: "c".repeat(64),
+		});
+		await new Promise((resolve) => setImmediate(resolve));
+		assert.match(undelivered.deliveryError!, /briefing command/);
+		// A manual connection sends nothing; the browser shows the command at once.
 		const manualJob = app.bridge.enqueue(manual.connection.id, task);
 		await new Promise((resolve) => setImmediate(resolve));
-		assert.match(manualJob.deliveryError!, /briefing command/);
+		assert.equal(manualJob.notifiedAt, undefined);
+		assert.equal(manualJob.deliveryError, undefined);
 		const manualClaim = body(
 			await call("claim_request", {
 				connectionId: manual.connection.id,
@@ -247,5 +256,73 @@ test("MCP opens without polling, acknowledges channels and completes exact reque
 		] as const)
 			if (value === undefined) delete process.env[name];
 			else process.env[name] = value;
+	}
+});
+
+test("without Channels, requests are posted into the invoking conversation's inbox", async () => {
+	const root = await mkdtemp(join(tmpdir(), "bv-inbox-mcp-"));
+	const app = new Application(
+		new Store(join(root, "annotations.sqlite")),
+		new BeadsAdapter(runner(await resolveBeads())),
+		"dist/web",
+	);
+	app.beads.detail = async () => task;
+	app.store.register({
+		id: task.repositoryId,
+		workspaceId: task.workspaceId,
+		databaseId: task.databaseId,
+		path: root,
+		name: "Inbox fixture",
+		beadsPath: join(root, ".beads"),
+		projectPrefix: "project:",
+		health: "fixture",
+	});
+	const posted: string[] = [];
+	let failNext = false;
+	const { mcp, close } = createViewerServer({
+		startRuntime: async () => ({ app, close: async () => app.close() }),
+		openBrowser: async () => null,
+		postToConversation: async (text) => {
+			if (failNext) throw new Error("inbox unavailable");
+			posted.push(text);
+		},
+	});
+	const client = new Client({ name: "inbox-fixture", version: "1.0.0" });
+	const [clientTransport, serverTransport] =
+		InMemoryTransport.createLinkedPair();
+	try {
+		await mcp.connect(serverTransport);
+		await client.connect(clientTransport);
+		const result = await client.callTool({
+			name: "connect_open",
+			arguments: { sessionId: "session-INBOX", options: { openBrowser: false } },
+		});
+		const opened = JSON.parse(
+			(result.content as { type: string; text: string }[])[0].text,
+		);
+		assert.equal(opened.connection.delivery, "inbox");
+		const job = app.bridge.enqueue(opened.connection.id, task);
+		await new Promise((resolve) => setTimeout(resolve, 10));
+		assert.equal(posted.length, 1);
+		assert.ok(posted[0].includes(job.id));
+		assert.ok(posted[0].includes(opened.connection.id));
+		assert.ok(posted[0].includes("session-INBOX"));
+		assert.ok(!posted[0].includes(opened.relayKey), "no private key");
+		assert.ok(!posted[0].includes(task.title), "no task text");
+		assert.equal(job.notifiedVia, "inbox");
+		assert.ok(job.notifiedAt);
+		app.bridge.cancel(opened.connection.id, job.id);
+		failNext = true;
+		const second = app.bridge.enqueue(opened.connection.id, {
+			...task,
+			revision: "b".repeat(64),
+		});
+		await new Promise((resolve) => setTimeout(resolve, 10));
+		assert.match(second.deliveryError!, /briefing command/);
+		assert.equal(second.state, "queued", "the manual command still works");
+	} finally {
+		await client.close();
+		await close();
+		await rm(root, { recursive: true, force: true });
 	}
 });

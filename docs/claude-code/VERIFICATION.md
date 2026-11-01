@@ -1,5 +1,48 @@
 # Beads Viewer for Claude Code — verification
 
+## 0.4.x: automatic Human view and compact UI (2026-11-02, Linux arm64)
+
+**Change.** Opening a task's Human view now requests a briefing from the invoking
+conversation automatically, with a spinner, and no button. Requests reach Claude
+through Claude Code's per-session inbox
+([cross-session messaging](https://code.claude.com/docs/en/cross-session-messaging#the-sessions-inbox-socket)):
+the plugin's MCP server is a child process of the conversation and receives
+`CLAUDE_CODE_MESSAGING_SOCKET`/`_TOKEN`; it writes the auth line and one user
+message in the format the installed Claude binary prints for injecting messages.
+Channels remain an option in the terminal; the paste command is the fallback. The
+browser layout was redesigned: compact single-line rows, a table that scrolls under
+a sticky header, a footer pinned to the bottom of the window whose "Fit screen" page
+size follows the window height, centred dialogs with a red close button, larger
+minimum text sizes, and a sticky pager on phones.
+
+**Why 0.3.2 was not enough in VS Code.** Channels never deliver in the VS Code
+extension (verified earlier with its 2.1.314 binary in stream-JSON mode), so 0.3.2
+Human view there always needed a click plus pasting a command. A probe against a real
+idle CLI session showed an inbox message starts a new turn and Claude acts on it.
+
+| Check (real Claude, real browser) | Result |
+| --- | --- |
+| VS Code mode: extension binary 2.1.314, stream-JSON, auto permissions, no channel flag, plugin 0.4.0 | `/beads-viewer:open` 9 s, one `connect_open`; unrelated command 1.7 s; idle 5.5 min with no turns; then opening Human view on a task without a briefing: spinner at once, the idle conversation started its own turn, `claim_request` 7 s after the click, `complete_request`, briefing in the browser with that conversation's session ID |
+| VS Code mode, plugin 0.4.1 (precise browser timeline) | Current briefing: shown in 0.1 s, no Claude turn. Out-of-date briefing: "Updating briefing" 0.4 s, "Sent to your Claude conversation" 4.2 s, "Claude is writing" 8.7 s, new briefing 37.8 s (≈1.4 s after completion) |
+| Task changed while Human view stayed open | Older-revision notice after 4 s, no automatic request, no new Claude turn; Regenerate produced a new briefing in 27 s |
+| Terminal CLI 2.1.316, no channel flag, plugin 0.4.2 | Request arrived as "Another Claude session sent a message: Beads Viewer request…", handled in one turn (34 s to the browser); Regenerate spinner at 0.05 s; prompt returned after each briefing |
+| Layout | Screenshots at 1440×900, 1366×768 and 390×844 in [evidence/installed-0.4](evidence/installed-0.4/) (taken with a scripted preview server; the briefing text in `layout-*` shots is placeholder layout text, not model output) |
+
+Automated: `npm run check` passes **21/21** tests (new: real Unix-socket inbox
+writer, inbox delivery with IDs only and fallback on failure); `npm run
+test:browser` passes desktop and mobile Chromium with automatic requests; package
+verification and strict plugin validation pass.
+
+**Limits.** Inbox requests are labelled by Claude Code as coming from another
+session. If Claude is busy, it handles a request between steps of its current work.
+`crossSessionInbound: refuse` or `hold` disables automatic delivery; the browser then
+offers the paste command after 45 seconds. The inbox message format is printed by
+the Claude binary and the mechanism is documented, but the message schema itself is
+not in the published docs, so a future Claude change could require an update (the
+fallback command keeps working). Beads reads take 1–3 s on this machine, which is
+most of the delay before "Claude is writing".
+
+
 ## 0.3.1 and 0.3.2 on the actual installed plugin (2026-11-01, Linux arm64)
 
 0.3.2 differs from 0.3.1 only by the inline-comment anchor fix (item 5 below); the

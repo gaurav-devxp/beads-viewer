@@ -4,7 +4,12 @@ import {
 	openBrowser,
 } from "../../../../apps/server/src/runtime.ts";
 import { createViewerServer } from "./server.ts";
-const { mcp, close } = createViewerServer({ startRuntime, openBrowser });
+import { sessionInbox } from "./inbox.ts";
+const { mcp, close } = createViewerServer({
+	startRuntime,
+	openBrowser,
+	postToConversation: sessionInbox(),
+});
 await mcp.connect(new StdioServerTransport());
 process.stdin.on("end", () => {
 	void close().then(() => process.exit(0));

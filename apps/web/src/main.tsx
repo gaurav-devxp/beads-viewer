@@ -26,6 +26,7 @@ import {
 	MessageSquare,
 	SlidersHorizontal,
 	ChevronRight,
+	ChevronLeft,
 	RefreshCw,
 	Link2,
 	FolderGit2,
@@ -49,6 +50,7 @@ import {
 	type Thread,
 	type Filters,
 	type ConnectionState,
+	type AIRequest,
 } from "@bv/contracts";
 import { api, authenticate, snapshot, detail } from "./api";
 import { useUI } from "./state";
@@ -238,7 +240,44 @@ function App() {
 				"readiness",
 			].includes(k),
 	);
-	const visible = filtered.slice(page * 50, page * 50 + 50);
+	// Rows per page: "auto" fits the rows that the visible table area can show at
+	// this resolution, so the pinned pagination bar never needs scrolling to reach.
+	const tableRef = useRef<HTMLDivElement>(null);
+	const [pageSizeSetting, setPageSizeSetting] = useState(() => {
+		try {
+			return localStorage.getItem("beads-viewer:page-size") || "auto";
+		} catch {
+			return "auto";
+		}
+	});
+	const [fitRows, setFitRows] = useState(25);
+	useEffect(() => {
+		const element = tableRef.current;
+		if (!element) return;
+		const measure = () => {
+			const head =
+				element.querySelector<HTMLElement>(".table-head")?.offsetHeight || 34;
+			const row =
+				element.querySelector<HTMLElement>(".task-row")?.offsetHeight || 40;
+			const available = element.clientHeight - head;
+			// Narrow screens scroll the page instead of the table: use a fixed size.
+			const limited = getComputedStyle(element).overflowY === "auto";
+			setFitRows(
+				limited && available > 0 ? Math.max(5, Math.floor(available / row)) : 25,
+			);
+		};
+		measure();
+		const observer = new ResizeObserver(measure);
+		observer.observe(element);
+		return () => observer.disconnect();
+	}, [ui.density, data.isPending, group]);
+	const pageSize =
+		pageSizeSetting === "auto" ? fitRows : Number(pageSizeSetting) || 25;
+	const pages = Math.max(1, Math.ceil(filtered.length / pageSize));
+	useEffect(() => {
+		if (page >= pages) setPage(pages - 1);
+	}, [page, pages]);
+	const visible = filtered.slice(page * pageSize, page * pageSize + pageSize);
 	if (auth.isError)
 		return (
 			<main className="gate">
@@ -455,17 +494,14 @@ function App() {
 							{liveDisconnected
 								? "Live updates lost"
 								: data.data?.connection.state === "connected"
-									? data.data.connection.delivery === "channel"
-										? "Claude channel ready"
-										: "Claude on request"
+									? data.data.connection.delivery === "manual"
+										? "Claude on request"
+										: "Claude connected"
 									: "AI disconnected"}
 						</span>
 					</div>
 				</header>
 				<section className="page-heading">
-					<div className="eyebrow">
-						A LITTLE CLARITY, ACROSS EVERY REPOSITORY
-					</div>
 					<div className="title-row">
 						<div>
 							<h1>
@@ -476,7 +512,6 @@ function App() {
 										: "All tasks"}{" "}
 								<span>{filtered.length}</span>
 							</h1>
-							<p>One place for the work ahead. Built around your Beads.</p>
 						</div>
 						<button
 							className="primary"
@@ -654,7 +689,11 @@ function App() {
 						retry={() => void data.refetch()}
 					/>
 				))}
-				<div className="task-table" aria-busy={data.isFetching}>
+				<div
+					className="task-table"
+					aria-busy={data.isFetching}
+					ref={tableRef}
+				>
 					<div className="table-head">
 						<span>Task</span>
 						<span>Repository / project</span>
@@ -720,7 +759,7 @@ function App() {
 											<Circle size={17} />
 										)}
 									</span>
-									<div>
+									<div className="task-text">
 										<button
 											className="task-title"
 											onClick={() =>
@@ -814,56 +853,108 @@ function App() {
 					))}
 				</div>
 				<footer className="list-footer">
-					<span>
-						{filtered.length
-							? `${page * 50 + 1}–${Math.min((page + 1) * 50, filtered.length)} of ${filtered.length} tasks`
-							: "0 tasks"}{" "}
-						·{" "}
-						{data.isFetching
-							? "Refreshing…"
-							: `Checked ${data.data?.observedAt ? new Date(data.data.observedAt).toLocaleTimeString() : "…"}`}
-					</span>
-					<div>
-						<button disabled={page === 0} onClick={() => setPage((p) => p - 1)}>
-							Previous
-						</button>
-						<button
-							disabled={(page + 1) * 50 >= filtered.length}
-							onClick={() => setPage((p) => p + 1)}
-						>
-							Next
-						</button>
-					</div>
-				</footer>
-				<div className="relay-notice">
-					<Bot size={16} />
-					<span>
-						{liveDisconnected
-							? "Live updates disconnected. Loaded task data may be stale; use Refresh to retry."
-							: data.data?.connection.state === "connected"
-								? data.data.connection.delivery === "channel"
-									? "Viewer ready. Human view requests are sent to your Claude conversation when you click Generate briefing."
-									: "Viewer ready. Claude is free for other work. Human view shows a command to run in the conversation that opened this viewer; enabled Channels can handle it automatically."
-								: data.data?.connection.reason ||
-									"Connect from Claude Code for Human view. Task editing and cached briefings work independently."}
-					</span>
-					{data.data?.viewerVersion && (
-						<small className="viewer-version">
-							Beads Viewer {data.data.viewerVersion}
-						</small>
-					)}
-					{data.data?.connection.state === "connected" && (
-						<button
-							onClick={() =>
-								void api("/disconnect", "POST", {}).then(() =>
-									client.invalidateQueries(),
-								)
+					<div className="footer-status">
+						<span>
+							{filtered.length
+								? `${page * pageSize + 1}–${Math.min((page + 1) * pageSize, filtered.length)} of ${filtered.length}`
+								: "0 tasks"}
+							{" · "}
+							{data.isFetching
+								? "Refreshing…"
+								: `Checked ${data.data?.observedAt ? new Date(data.data.observedAt).toLocaleTimeString() : "…"}`}
+						</span>
+						<span
+							className={
+								"connection-note" +
+								(data.data?.connection.state === "connected" &&
+								!liveDisconnected
+									? " connected"
+									: "")
+							}
+							title={
+								liveDisconnected
+									? "Live updates disconnected. Loaded task data may be stale; use Refresh to retry."
+									: data.data?.connection.state === "connected"
+										? data.data.connection.delivery === "manual"
+											? "Human view shows a command to paste into the Claude conversation that opened this viewer."
+											: "Opening a task's Human view asks the Claude conversation that opened this viewer for a briefing automatically."
+										: data.data?.connection.reason ||
+											"Not connected to Claude. Task editing and cached briefings still work."
 							}
 						>
-							Disconnect
+							<Bot size={13} />
+							{liveDisconnected
+								? "Live updates lost"
+								: data.data?.connection.state === "connected"
+									? data.data.connection.delivery === "manual"
+										? "Claude: briefings on request"
+										: "Claude: automatic briefings"
+									: "Claude not connected"}
+						</span>
+						{data.data?.viewerVersion && (
+							<small className="viewer-version">
+								Beads Viewer {data.data.viewerVersion}
+							</small>
+						)}
+					</div>
+					<div className="pager">
+						<label className="page-size">
+							Rows
+							<select
+								aria-label="Rows per page"
+								value={pageSizeSetting}
+								onChange={(e) => {
+									setPageSizeSetting(e.target.value);
+									setPage(0);
+									try {
+										localStorage.setItem(
+											"beads-viewer:page-size",
+											e.target.value,
+										);
+									} catch {
+										/* Preference is optional */
+									}
+								}}
+							>
+								<option value="auto">Fit screen ({fitRows})</option>
+								<option value="25">25</option>
+								<option value="50">50</option>
+								<option value="100">100</option>
+							</select>
+						</label>
+						<button
+							className="icon-button"
+							aria-label="Previous page"
+							disabled={page === 0}
+							onClick={() => setPage((p) => p - 1)}
+						>
+							<ChevronLeft size={16} />
 						</button>
-					)}
-				</div>
+						<span className="page-count">
+							Page {page + 1} of {pages}
+						</span>
+						<button
+							className="icon-button"
+							aria-label="Next page"
+							disabled={page + 1 >= pages}
+							onClick={() => setPage((p) => p + 1)}
+						>
+							<ChevronRight size={16} />
+						</button>
+						{data.data?.connection.state === "connected" && (
+							<button
+								className="text-button"
+								onClick={() =>
+									void api("/disconnect", "POST", {}).then(() =>
+										client.invalidateQueries(),
+									)
+								}
+							>
+								Disconnect
+							</button>
+						)}
+					</div>
+				</footer>
 			</main>
 			{filters.task && filters.workspace && (
 				<TaskDialog
@@ -925,6 +1016,75 @@ function App() {
 						))}
 					</div>
 				</Dialog>
+			)}
+		</div>
+	);
+}
+function useNow(active: boolean, every = 5000) {
+	const [now, setNow] = useState(Date.now());
+	useEffect(() => {
+		if (!active) return;
+		const timer = setInterval(() => setNow(Date.now()), every);
+		return () => clearInterval(timer);
+	}, [active, every]);
+	return now;
+}
+// Automatic delivery normally starts within seconds; after this, offer the command.
+const PICKUP_GRACE_MS = 45000;
+function BriefingProgress({
+	request,
+	delivery,
+	replacing,
+	onCancel,
+}: {
+	request?: AIRequest;
+	delivery: ConnectionState["delivery"] | undefined;
+	replacing: boolean;
+	onCancel?: () => void;
+}) {
+	const now = useNow(request?.state === "queued");
+	const command = request
+		? `/beads-viewer:brief ${JSON.stringify({ connectionId: request.connectionId, requestId: request.id })}`
+		: "";
+	const automatic = delivery === "channel" || delivery === "inbox";
+	const waited = request ? now - (request.notifiedAt || request.createdAt) : 0;
+	const needsCommand =
+		!!request &&
+		request.state === "queued" &&
+		(!automatic ||
+			!!request.deliveryError ||
+			(!!request.notifiedAt && waited > PICKUP_GRACE_MS));
+	const message = !request
+		? "Asking Claude for a briefing…"
+		: request.state === "running"
+			? "Claude is writing the briefing…"
+			: request.deliveryError
+				? request.deliveryError
+				: !automatic
+					? "Waiting for Claude. Paste this command into the Claude conversation that opened this viewer:"
+					: needsCommand
+						? "Claude hasn't picked this up yet; it may be busy with another task and will start when free. To run it now, paste this command into that conversation:"
+						: request.notifiedAt
+							? "Sent to your Claude conversation. Waiting for Claude…"
+							: "Asking Claude for a briefing…";
+	return (
+		<div
+			className={"briefing-progress" + (replacing ? " compact" : "")}
+			role="status"
+			aria-live="polite"
+		>
+			<span className="spinner" aria-hidden="true" />
+			<div className="briefing-delivery">
+				<strong>
+					{replacing ? "Updating briefing" : "Preparing briefing"}
+				</strong>
+				<p>{message}</p>
+				{needsCommand && <BriefCommand command={command} />}
+			</div>
+			{onCancel && (
+				<button className="text-button" onClick={onCancel}>
+					Cancel
+				</button>
 			)}
 		</div>
 	);
@@ -997,11 +1157,12 @@ function Dialog({
 			<div className="dialog-top">
 				<span>{title}</span>
 				<button
-					className="icon-button"
+					className="dialog-close"
 					aria-label="Close dialog"
+					title="Close"
 					onClick={close}
 				>
-					<X size={19} />
+					<X size={16} strokeWidth={2.5} />
 				</button>
 			</div>
 			{children}
@@ -1384,6 +1545,72 @@ function TaskDialog({
 		["queued", "running"].includes(j.state),
 	);
 	const latestJob = query.data?.jobs.at(-1);
+	// Opening Human view asks the invoking Claude conversation for a briefing when
+	// there is none for the current task revision: once per revision per page, never
+	// after a failed or cancelled attempt, and not again when the task changes while
+	// the tab stays open (that shows the older-revision notice and Regenerate).
+	const [openedRevision, setOpenedRevision] = useState<string | null>(null);
+	useEffect(() => {
+		if (tab !== "human") setOpenedRevision(null);
+		else if (t) setOpenedRevision((current) => current ?? t.revision);
+	}, [tab, t?.revision]);
+	const needsBriefing =
+		!!t && (!summaries.length || summaries[0].sourceHash !== t.revision);
+	const autoRequested = useRef(new Set<string>());
+	const revisionJob = (query.data?.jobs || [])
+		.filter((j) => j.sourceHash === t?.revision)
+		.at(-1);
+	const attempted = !!revisionJob;
+	// Show progress at once: Beads reads can take seconds before the new request
+	// appears in the task data.
+	// A Generate/Regenerate click also shows progress at once.
+	const [awaiting, setAwaiting] = useState(false);
+	useEffect(() => {
+		if (request) setAwaiting(false);
+	}, [!!request, summaries[0]?.id]);
+	const requestBriefing = () => {
+		setAwaiting(true);
+		void mutate("summarize", "POST", {}, () => setRevisionId("")).then(
+			(ok) => {
+				if (!ok) setAwaiting(false);
+			},
+		);
+	};
+	const starting =
+		awaiting ||
+		(tab === "human" &&
+		t?.revision === openedRevision &&
+		needsBriefing &&
+		!request &&
+		!attempted &&
+		connection?.state === "connected");
+	useEffect(() => {
+		if (
+			tab !== "human" ||
+			!t ||
+			t.revision !== openedRevision ||
+			!needsBriefing ||
+			request ||
+			attempted ||
+			connection?.state !== "connected" ||
+			autoRequested.current.has(t.revision)
+		)
+			return;
+		const revision = t.revision;
+		const timer = setTimeout(() => {
+			autoRequested.current.add(revision);
+			void mutate("summarize", "POST", {}, () => setRevisionId(""));
+		}, 300);
+		return () => clearTimeout(timer);
+	}, [
+		tab,
+		t?.revision,
+		openedRevision,
+		needsBriefing,
+		!!request,
+		attempted,
+		connection?.state,
+	]);
 	return (
 		<>
 			<Dialog
@@ -1637,62 +1864,46 @@ function TaskDialog({
 									) : (
 										<>
 											<div className="human-top">
-												<div>
-													<span className="eyebrow">THE HUMAN BRIEFING</span>
-													<p>Plain language, grounded in the original task.</p>
-												</div>
-												<button
-													className="primary"
-													disabled={busy || !!request}
-													onClick={() =>
-														void mutate("summarize", "POST", {}, () =>
-															setRevisionId(""),
-														)
-													}
-												>
-													<RefreshCw size={15} />
-													{request
-														? request.state === "queued"
-															? "Request queued"
-															: "Claude is writing…"
-														: summary
-															? "Regenerate"
-															: "Generate briefing"}
-												</button>
-											</div>
-											{request && (
-												<div className="job-state" role="status">
-													<div className="briefing-delivery">
-														<p>
-															{request.state === "running"
-																? "Claude is writing this briefing."
-																: request.deliveryError ||
-																	(connection?.delivery === "channel"
-																		? "Sent to Claude. If it stays queued, run the command below in the conversation that opened this viewer."
-																		: "Run this command in the Claude conversation that opened this viewer. Channels can handle future requests automatically when enabled.")}
-														</p>
-														{request.state === "queued" && (
-															<BriefCommand
-																command={`/beads-viewer:brief ${JSON.stringify({ connectionId: request.connectionId, requestId: request.id })}`}
-															/>
-														)}
-													</div>
+												<span className="eyebrow">HUMAN BRIEFING</span>
+												{summary && !request && !starting && (
 													<button
-														onClick={() =>
-															void mutate("cancel", "POST", {
-																requestId: request.id,
-															})
-														}
+														className="small-button"
+														disabled={busy || connection?.state !== "connected"}
+														title="Ask Claude for a fresh briefing"
+														onClick={requestBriefing}
 													>
-														Cancel request
+														<RefreshCw size={13} />
+														Regenerate
 													</button>
-												</div>
-											)}
-											{latestJob?.state === "failed" && (
-												<ErrorBox
-													error={latestJob.error || "AI request failed"}
+												)}
+											</div>
+											{(request || starting) && (
+												<BriefingProgress
+													request={request}
+													delivery={connection?.delivery}
+													replacing={!!summary}
+													onCancel={
+														request
+															? () =>
+																	void mutate("cancel", "POST", {
+																		requestId: request.id,
+																	})
+															: undefined
+													}
 												/>
 											)}
+											{!request &&
+												latestJob?.state === "failed" &&
+												latestJob.sourceHash === t.revision && (
+													<ErrorBox
+														error={latestJob.error || "AI request failed"}
+														retry={
+															connection?.state === "connected"
+																? requestBriefing
+																: undefined
+														}
+													/>
+												)}
 											{summaries.length > 0 && (
 												<label className="revision-select">
 													Summary revision
@@ -1796,15 +2007,29 @@ function TaskDialog({
 													</p>
 												</>
 											) : (
-												<div className="empty human-empty">
-													<Bot size={36} />
-													<h2>A little context goes a long way.</h2>
-													<p>
-														Ask your invoking Claude conversation for a
-														source-linked briefing. There is no cached summary
-														for this task yet.
-													</p>
-												</div>
+												!request &&
+												!starting && (
+													<div className="empty human-empty">
+														<Bot size={32} />
+														<h2>No briefing yet</h2>
+														<p>
+															{connection?.state === "connected"
+																? "There is no cached summary for this task yet."
+																: "There is no cached summary for this task yet. Run /beads-viewer:open in Claude to generate briefings."}
+														</p>
+														{connection?.state === "connected" &&
+															revisionJob?.state !== "failed" && (
+																<button
+																	className="primary"
+																	disabled={busy}
+																	onClick={requestBriefing}
+																>
+																	<RefreshCw size={14} />
+																	Generate briefing
+																</button>
+															)}
+													</div>
+												)
 											)}
 										</>
 									)}

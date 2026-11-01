@@ -99,12 +99,9 @@ test("multi-repository workflow, source comments, summary annotations and reload
 		).toBeVisible();
 		await page.getByRole("button", { name: "Edit task", exact: true }).click();
 		await page.getByLabel("Title", { exact: true }).fill("Draft survives tabs");
+		// Opening Human view asks Claude for a briefing without a button click.
 		await page.getByRole("tab", { name: "Human view", exact: true }).click();
-		await expect(
-			page.getByText("There is no cached summary for this task yet.", {
-				exact: false,
-			}),
-		).toBeVisible();
+		await expect(page.getByText("Preparing briefing")).toBeVisible();
 		await page.getByRole("tab", { name: "Agent view", exact: true }).click();
 		await expect(page.getByLabel("Title", { exact: true })).toHaveValue(
 			"Draft survives tabs",
@@ -114,11 +111,16 @@ test("multi-repository workflow, source comments, summary annotations and reload
 			.getByRole("button", { name: "Cancel edits", exact: true })
 			.click();
 		await page.getByRole("tab", { name: "Human view", exact: true }).click();
-		await page
-			.getByRole("button", { name: "Generate briefing", exact: true })
-			.click();
-		// The request exists once the browser shows its one-request command.
+		// No automatic delivery in this fixture, so the one-request command shows.
 		await expect(page.getByLabel("Claude briefing command")).toBeVisible();
+		expect(
+			app.bridge.list(
+				opened.connection.id,
+				f.repos[0].workspaceId,
+				"same-collision",
+			),
+			"visiting the tab twice still makes one request",
+		).toHaveLength(1);
 		const queued = app.bridge
 			.list(opened.connection.id, f.repos[0].workspaceId, "same-collision")
 			.at(-1)!;

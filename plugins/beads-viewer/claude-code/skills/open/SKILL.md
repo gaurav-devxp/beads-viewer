@@ -31,9 +31,10 @@ $ARGUMENTS
 4. On success, reply in a few lines: viewer version, selected repositories, any
    warnings or failures (quote mixed-version warnings exactly), and the one-time
    link only if the browser did not open. Never echo the relayKey. For Human view,
-   say requests come into this conversation automatically only if you acknowledged
-   this connection's channel ready event with `channel_ready`; otherwise say the
-   browser shows a `/beads-viewer:brief` command to paste into this conversation.
+   use the returned `connection.delivery`: "inbox" or "channel" means opening a
+   task's Human view sends the request into this conversation automatically;
+   "manual" means the browser shows a `/beads-viewer:brief` command to paste here.
+   If you acknowledged a channel ready event with `channel_ready`, it is "channel".
 5. END THIS TURN. Do not call `claim_request`, `connection_state` or `disconnect`;
    there is no `next_request` tool. Do not sleep, wait for the browser, or loop.
    The viewer keeps running after this turn, and idle time does not disconnect it.

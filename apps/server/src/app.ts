@@ -81,9 +81,13 @@ export class Application {
 			throw new AppError(403, "Workspace was not selected for this launch");
 		return this.repository(workspaceId);
 	}
-	async open(sessionId: string, input: unknown) {
+	async open(
+		sessionId: string,
+		input: unknown,
+		delivery: "manual" | "channel" | "inbox" = "manual",
+	) {
 		const options = launchOptions.parse(input);
-		const opened = this.bridge.open(sessionId, options);
+		const opened = this.bridge.open(sessionId, options, delivery);
 		this.scopes.set(opened.connection.id, new Set());
 		const failures: {
 				path: string;
@@ -116,7 +120,7 @@ export class Application {
 			failures,
 			notices,
 			notice:
-				"Viewer opened. Return control to the user now; do not poll or disconnect. Human view requests use an enabled Claude channel or the browser's one-request briefing command.",
+				"Viewer opened. Return control to the user now; do not poll or disconnect. Human view requests are posted into this conversation automatically when possible, otherwise the browser shows a one-request briefing command.",
 		};
 	}
 	async register(

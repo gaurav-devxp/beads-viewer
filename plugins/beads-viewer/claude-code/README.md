@@ -30,12 +30,12 @@ with `BV_BD_BINARY`. See the runtime guide above for safe path examples.
 
 ## Install or try the portable package
 
-Obtain the prebuilt `beads-viewer-0.3.2-claude-code.zip` from the builder and extract
+Obtain the prebuilt `beads-viewer-0.4.2-claude-code.zip` from the builder and extract
 it with the OS archive utility. There is no configured public release URL yet.
 Start a new Claude session with the extracted **plugin root**:
 
 ```sh
-claude --plugin-dir "/absolute/path/to/beads-viewer-0.3.2-claude-code"
+claude --plugin-dir "/absolute/path/to/beads-viewer-0.4.2-claude-code"
 ```
 
 A compatible Claude CLI can also load the plugin ZIP directly; actual loader
@@ -57,44 +57,42 @@ repositories and filters remain optional JSON:
 /beads-viewer:open {"repositories":["/path/to/first","/path/to/second"],"filters":{"status":"open,in_progress"}}
 ```
 
-### Automatic Human view through Channels
+### Human view
 
-After installing through the local marketplace below, start Claude in a terminal with:
+Opening a task's Human view asks the conversation that ran `/beads-viewer:open`
+for a briefing automatically, with a spinner until it arrives. The plugin's MCP
+server posts a short message (request IDs only) into that conversation through
+Claude Code's [session inbox](https://code.claude.com/docs/en/cross-session-messaging#the-sessions-inbox-socket),
+which Claude Code provides to a session's child processes; an idle conversation
+starts a new turn with it. This works in the terminal and the VS Code extension
+(Claude Code 2.1.224+). Claude treats the message like one from another session:
+it cannot approve permissions or change settings, and normal permission handling
+applies. If Claude is busy it handles the request between steps of its current work.
+
+If inbound session messages are refused or held (`crossSessionInbound`), or Claude
+has not picked a request up within 45 seconds, the browser shows a
+`/beads-viewer:brief {…}` command with a Copy button. Paste it into the same
+conversation; it generates exactly that briefing and ends its turn.
+
+Terminal users can instead enable this plugin as a research-preview Channel:
 
 ```sh
 claude --dangerously-load-development-channels plugin:beads-viewer@beads-viewer-local
 ```
 
-Claude asks for interactive confirmation because custom Channels are a research
-preview. Opt in to this plugin only; normal tool permissions and organization
-policies still apply. No extra provider API key, SDK worker or host-setting edit
-is required by the plugin. See the [official reference](https://code.claude.com/docs/en/channels-reference).
-Then invoke `/beads-viewer:open` as usual. The browser shows channel readiness after
-Claude acknowledges the probe. Each Generate briefing click sends a single event
-into this session, which claims and completes that request, then returns control.
-There is no idle model polling. When Claude is busy, events wait for the next turn;
-actual generation occupies a normal turn. The VS Code extension runs Claude without
-an interactive terminal, where Claude ignores the development-channel flag, so VS
-Code conversations use the manual fallback below.
+Channel events wait for Claude's next turn rather than joining the current one. The
+VS Code extension cannot receive channel events.
 
-### Manual Human view fallback
-
-If Channels are unavailable, blocked, or not delivering, click Generate briefing
-and copy the displayed `/beads-viewer:brief {…}` command into the conversation that
-opened the viewer. It generates exactly that briefing, then ends its turn. The
-command contains request IDs, never authentication credentials. Cached summaries
-and task management continue independently.
-
-Idle Claude turns no longer disconnect the viewer. The default connection lasts
-until explicit Disconnect or MCP shutdown; an optional lifetimeSeconds can impose
-a limit. Queued requests expire after 30 minutes and claimed work after 15;
-failed/cancelled work can be generated again. Each claim lists the exact source
-IDs a briefing may cite. Existing annotations and summary history remain intact.
+Idle Claude turns never disconnect the viewer. The connection lasts until
+Disconnect or MCP shutdown; an optional lifetimeSeconds can impose a limit. Queued
+requests expire after 30 minutes and claimed work after 15; failed or cancelled
+work can be generated again. Each claim lists the exact source IDs a briefing may
+cite. Existing annotations and summary history remain intact.
 
 To check prerequisites without opening a browser/listener:
 
 ```sh
-node "/absolute/path/to/beads-viewer-0.3.2-claude-code/launch.cjs" --check
+node "/absolute/path/to/beads-viewer-0.4.2-claude-code/launch.cjs" --check
 ```
 
 ## Persistent local marketplace

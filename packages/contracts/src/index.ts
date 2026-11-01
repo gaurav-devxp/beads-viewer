@@ -169,7 +169,8 @@ export interface ConnectionState {
 	sessionId: string;
 	host: "claude-code" | "codex";
 	state: "connected" | "disconnected" | "expired";
-	delivery: "manual" | "channel";
+	/** How Human view requests reach the invoking Claude conversation. */
+	delivery: "manual" | "channel" | "inbox";
 	createdAt: number;
 	lastSeen: number;
 	expiresAt: number | null;
@@ -188,6 +189,9 @@ export interface AIRequest {
 	state: "queued" | "running" | "complete" | "failed" | "cancelled";
 	error?: string;
 	deliveryError?: string;
+	/** When the request was sent to Claude automatically, and how. */
+	notifiedAt?: number;
+	notifiedVia?: "channel" | "inbox";
 	result?: Summary;
 }
 export interface Snapshot {

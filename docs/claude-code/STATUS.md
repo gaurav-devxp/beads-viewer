@@ -1,4 +1,4 @@
-# Status — 0.3.2 verified on the installed plugin (Linux arm64); release verification incomplete
+# Status — 0.4.2 verified on the installed plugin (Linux arm64); release verification incomplete
 
 Version 0.3 uses installed Node and Beads. The native Go launcher, platform runtime
 copies, `runtime-lock.json` and cross-build script have been removed. Packaging
@@ -52,3 +52,10 @@ that rejected real task fields and the too-short claim deadline; 0.3.2 fixed inl
 comments after an ordinary comment. Packaging stages each version in its own
 marketplace folder. See [VERIFICATION.md](VERIFICATION.md) for root cause and
 results. Windows, macOS and clicking through the VS Code panel remain unverified.
+
+0.4 makes Human view automatic in every Claude Code surface, including the VS Code
+extension: opening the tab posts a request (IDs only) into the invoking conversation
+through Claude Code's session inbox, and the browser shows a spinner until the
+briefing arrives. The browser layout is compact, with a pinned pager sized to the
+window and centred dialogs. Both were exercised with real conversations; see
+[VERIFICATION.md](VERIFICATION.md).

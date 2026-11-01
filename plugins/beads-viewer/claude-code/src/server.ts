@@ -5,6 +5,7 @@ import { launchOptions, summaryContent, type AIRequest } from "@bv/contracts";
 import { secret, equal, allowedSources } from "@bv/host-bridge";
 import type { Application } from "../../../../apps/server/src/app.ts";
 import { briefingInstructions } from "./briefing.ts";
+import { briefingRequestMessage } from "./inbox.ts";
 import identity from "../.claude-plugin/plugin.json" with { type: "json" };
 interface ViewerRuntime {
 	app: Application;
@@ -13,6 +14,8 @@ interface ViewerRuntime {
 export function createViewerServer(dependencies: {
 	startRuntime(): Promise<ViewerRuntime>;
 	openBrowser(url: string): Promise<string | null>;
+	/** Posts into the invoking conversation (its session inbox), when available. */
+	postToConversation?: ((text: string) => Promise<void>) | null;
 }) {
 	const mcp = new McpServer(
 		{ name: identity.name, version: identity.version },
@@ -22,6 +25,7 @@ export function createViewerServer(dependencies: {
 		},
 	);
 	const { startRuntime, openBrowser } = dependencies;
+	const postToConversation = dependencies.postToConversation ?? null;
 	const probes = new Map<string, string>();
 	let runtime: Awaited<ReturnType<typeof startRuntime>> | undefined;
 	let startup: ReturnType<typeof startRuntime> | undefined;
@@ -55,27 +59,42 @@ export function createViewerServer(dependencies: {
 		connectionId: z.string().uuid(),
 		relayKey: z.string().min(40).max(100),
 	};
+	// Generated IDs only: task text, browser content and private relay keys are
+	// never sent to Claude through a channel event or the session inbox.
 	function onRequest(request: AIRequest) {
 		if (!runtime) return;
 		const app = runtime.app;
 		const connection = app.bridge.state(request.connectionId);
-		// Generated IDs only: task text, browser content and private relay keys are
-		// never injected into channel notifications.
-		void mcp.server
-			.notification({
-				method: "notifications/claude/channel",
-				params: {
-					content:
-						"Generate one requested Beads Viewer briefing: claim_request using this event's IDs, complete_request or fail_request, then return control. Never poll.",
-					meta: {
-						kind: "brief",
-						connection_id: request.connectionId,
-						request_id: request.id,
-						session_id: connection.sessionId,
+		if (connection.delivery === "channel")
+			void mcp.server
+				.notification({
+					method: "notifications/claude/channel",
+					params: {
+						content:
+							"Generate one requested Beads Viewer briefing: claim_request using this event's IDs, complete_request or fail_request, then return control. Never poll.",
+						meta: {
+							kind: "brief",
+							connection_id: request.connectionId,
+							request_id: request.id,
+							session_id: connection.sessionId,
+						},
 					},
-				},
-			})
-			.catch(() => app.bridge.deliveryFailed(request.id));
+				})
+				.then(
+					() => app.bridge.notified(request.id, "channel"),
+					() => app.bridge.deliveryFailed(request.id),
+				);
+		else if (connection.delivery === "inbox" && postToConversation)
+			void postToConversation(
+				briefingRequestMessage({
+					connectionId: request.connectionId,
+					requestId: request.id,
+					sessionId: connection.sessionId,
+				}),
+			).then(
+				() => app.bridge.notified(request.id, "inbox"),
+				() => app.bridge.deliveryFailed(request.id),
+			);
 	}
 	// No allowed-tools frontmatter: the user's normal host permission policy applies to every tool.
 	mcp.registerTool(
@@ -103,6 +122,7 @@ export function createViewerServer(dependencies: {
 			const result = await active.app.open(
 				sessionId,
 				automatic ? { ...options, repositories: [invoking] } : options,
+				postToConversation ? "inbox" : "manual",
 			);
 			const warnings: string[] = [];
 			const automaticFailed = automatic && result.failures.length > 0;

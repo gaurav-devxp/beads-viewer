@@ -61,7 +61,11 @@ export class Bridge extends EventEmitter {
 		this.timer = setInterval(() => this.sweep(), 1000);
 		this.timer.unref();
 	}
-	open(sessionId: string, options: LaunchOptions) {
+	open(
+		sessionId: string,
+		options: LaunchOptions,
+		delivery: ConnectionState["delivery"] = "manual",
+	) {
 		if (
 			!/^[A-Za-z0-9-]{8,200}$/.test(sessionId) ||
 			sessionId.includes("CLAUDE_")
@@ -78,7 +82,7 @@ export class Bridge extends EventEmitter {
 			host: "claude-code",
 			sessionId,
 			state: "connected",
-			delivery: "manual",
+			delivery,
 			createdAt: now,
 			lastSeen: now,
 			expiresAt: options.lifetimeSeconds
@@ -166,6 +170,13 @@ export class Bridge extends EventEmitter {
 		this.emit("change", connectionId);
 		this.emit("request", j);
 		return j;
+	}
+	notified(requestId: string, via: "channel" | "inbox") {
+		const j = this.jobs.get(requestId);
+		if (!j || j.state !== "queued") return;
+		j.notifiedAt = Date.now();
+		j.notifiedVia = via;
+		this.emit("change", j.connectionId);
 	}
 	deliveryFailed(requestId: string) {
 		const j = this.jobs.get(requestId);
