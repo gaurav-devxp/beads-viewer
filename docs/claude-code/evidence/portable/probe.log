@@ -1,0 +1,8 @@
+
+> beads-viewer@0.2.0 probe:plugin
+> node scripts/probe-plugin.mjs
+
+Read-only installed package outside checkout, spaces/Unicode: prerequisite checks PASS
+Installed Node: 24.11.1
+Installed Beads: 1.1.0 via PATH
+Probe blocked/failed: MCP error -32000: Connection closed

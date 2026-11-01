@@ -1,0 +1,3 @@
+(node:2) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+Beads Viewer [BEADS_NOT_FOUND]: Beads (bd) was not found on the host process PATH. Beads is a prerequisite: install/configure it yourself, confirm bd version works, or set BV_BD_BINARY to its absolute executable path. Check the PATH inherited by Claude Code, then restart the host or reconnect the beads-viewer MCP server. No dependencies were installed or changed.

@@ -1,0 +1,19 @@
+{
+  "success": false,
+  "strict": true,
+  "target": "/home/parallels/projects/genai/beads-viewer/artifacts/beads-viewer-0.1.0-linux-arm64-experimental/.claude-plugin/marketplace.json",
+  "manifest": {
+    "file": "/home/parallels/projects/genai/beads-viewer/artifacts/beads-viewer-0.1.0-linux-arm64-experimental/.claude-plugin/marketplace.json",
+    "type": "marketplace",
+    "errors": [],
+    "warnings": [
+      {
+        "path": "description",
+        "message": "No marketplace description provided. Adding a description helps users understand what this marketplace offers",
+        "code": null
+      }
+    ],
+    "notes": []
+  },
+  "contents": []
+}

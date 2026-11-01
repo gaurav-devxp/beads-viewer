@@ -1,0 +1,14 @@
+{
+  "name": "beads-viewer",
+  "version": "0.2.0",
+  "description": "Local multi-repository Beads workspace with a main-conversation Claude relay.",
+  "author": {
+    "name": "Beads Viewer contributors"
+  },
+  "license": "MIT",
+  "keywords": [
+    "beads",
+    "tasks",
+    "local"
+  ]
+}

@@ -1,0 +1,51 @@
+
+> beads-viewer@0.2.0 check
+> npm run typecheck && npm run lint && npm test && npm run build
+
+
+> beads-viewer@0.2.0 typecheck
+> tsc --noEmit
+
+
+> beads-viewer@0.2.0 lint
+> eslint apps packages plugins/beads-viewer/claude-code/src tests
+
+
+> beads-viewer@0.2.0 test
+> node --import tsx --test --test-isolation=none --test-concurrency=1 tests/*.test.ts
+
+(node:68) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ canonical Unicode/CRLF and repeated quote anchoring are conservative (1.84925ms)
+✔ both views, replies, resolution, immutable revisions, dedup and transactional export/import survive restart (7.753708ms)
+✔ schema 1 to 2 migration preserves data and allows separate worktrees of one repository (2.026584ms)
+✔ portable ZIP retains nested UTF-8 filenames, bytes and standard CRC/end directory (5.754958ms)
+✔ real embedded Beads: colliding IDs, native CRUD/comments/deps, shell-safe arguments, closed and ready filters, conflict, private PATH (19673.222801ms)
+✔ relay isolates A/B, rejects invalid references and stale/cancelled results, and bounds waits (31.668916ms)
+✔ idle and lifetime expiry fail active jobs without affecting other connections (1.3165ms)
+✔ safe Markdown and anchors share an explicit canonical text across code, Unicode, lists and repeated quotes (31.186041ms)
+✔ Node range and SQLite diagnostics precede server import (1.587084ms)
+✔ PATH resolution handles explicit paths, symlinks and failures without using a shell (21.398166ms)
+✔ real installed Beads is discovered and probed without a private runtime (739.862542ms)
+✔ HTTP contract with real Beads: one-use credential, Host/Origin/CSRF, scoped roots, dedup, annotations and launch isolation (18890.473467ms)
+ℹ tests 12
+ℹ suites 0
+ℹ pass 12
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 39548.296228
+
+> beads-viewer@0.2.0 build
+> node scripts/build.mjs
+
+vite v6.4.2 building for production...
+transforming...
+✓ 1643 modules transformed.
+rendering chunks...
+computing gzip size...
+../../dist/web/index.html                   0.41 kB │ gzip:   0.28 kB
+../../dist/web/assets/index-DBu3OnqV.css   29.02 kB │ gzip:   6.97 kB
+../../dist/web/assets/index-DVaeoDW3.js   388.03 kB │ gzip: 114.85 kB
+✓ built in 2.43s

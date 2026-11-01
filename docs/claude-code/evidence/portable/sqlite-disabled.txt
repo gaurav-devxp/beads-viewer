@@ -1,0 +1,1 @@
+Beads Viewer [SQLITE_UNAVAILABLE]: The selected Node.js lacks node:sqlite.DatabaseSync. Use a standard supported Node.js installation with SQLite enabled; check NODE_OPTIONS for disabled SQLite. Check the PATH inherited by Claude Code, then restart the host or reconnect the beads-viewer MCP server. No dependencies were installed or changed.

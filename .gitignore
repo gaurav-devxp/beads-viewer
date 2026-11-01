@@ -1,0 +1,127 @@
+# Installed dependencies and package-manager caches
+node_modules/
+.npm/
+.pnpm-store/
+.yarn/cache/
+.yarn/unplugged/
+.yarn/install-state.gz
+.pnp.*
+.node_repl_history
+
+# Generated application builds, release archives and portable JS runtime staging
+dist/
+/build/
+/out/
+/artifacts/
+/.runtime-cache/
+plugins/**/runtime/
+
+# Build/lint/tool caches
+.cache/
+.vite/
+.turbo/
+*.tsbuildinfo
+.eslintcache
+.stylelintcache
+
+# Test, coverage and browser output
+coverage/
+.nyc_output/
+playwright-report/
+playwright/.cache/
+test-results/
+blob-report/
+
+# Runtime logs and diagnostics
+logs/
+*.log
+*.pid
+*.pid.lock
+report.[0-9]*.json
+/core
+/core.[0-9]*
+
+# Deliberately retained verification evidence (not transient runtime logs)
+!docs/**/evidence/check.log
+!docs/**/evidence/final-ui-check.log
+!docs/**/evidence/package.log
+!docs/**/evidence/playwright-attempt.log
+
+# Local environment files; sanitized templates remain versionable
+.env
+.env.*
+!.env.example
+!.env.sample
+!.env.template
+!.env.*.example
+
+# Local credentials and private signing material
+/.aws/
+*.pem
+*.key
+*.p12
+*.pfx
+*.keystore
+id_rsa
+id_ed25519
+.npmrc.local
+
+# Viewer-local state, if BV_DATA_DIR is placed inside this checkout
+/.beads-viewer/
+/local-data/
+*.sqlite
+*.sqlite3
+*.sqlite-journal
+*.sqlite-wal
+*.sqlite-shm
+*.sqlite3-journal
+*.sqlite3-wal
+*.sqlite3-shm
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Host-local settings, authentication and caches.
+# Do not ignore .agents/, .claude-plugin/, skills or shared project configuration:
+# those directories also contain source-controlled marketplace/plugin definitions.
+**/.claude/settings.local.json
+/.claude/plugins/cache/
+/.agents/plugins/cache/
+/.codex/auth.json
+/.codex/config.local.toml
+/.codex/history.jsonl
+/.codex/sessions/
+/.codex/shell_snapshots/
+/.codex/log/
+/.codex/logs/
+/.codex/tmp/
+/.codex/cache/
+/.codex/plugins/cache/
+/.codex/marketplaces/
+
+# Editor/OS files; portable VS Code project configuration can be committed
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+*.swp
+*.swo
+*~
+.DS_Store
+._*
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Local temporary files and worktrees
+*.tmp
+*.temp
+/tmp/
+/temp/
+/.worktrees/
+
+# Deliberately retained portable validation records
+!docs/**/evidence/portable/*.log

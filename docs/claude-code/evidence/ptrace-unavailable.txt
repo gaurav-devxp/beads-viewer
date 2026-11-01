@@ -1,0 +1,4 @@
+Attempt: strace -f -e trace=execve on the private Beads binary with PATH=/nonexistent, in a disposable workspace.
+Result: command could not be traced; no subprocess audit was obtained.
+/usr/bin/strace: do_test_ptrace_get_syscall_info: PTRACE_TRACEME: Operation not permitted
+/usr/bin/strace: attach: ptrace(PTRACE_SEIZE, 86): Operation not permitted

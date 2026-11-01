@@ -1,0 +1,12 @@
+
+> beads-viewer@0.1.0 package:plugin
+> node scripts/package.mjs --target linux-arm64
+
+file:///home/parallels/projects/genai/beads-viewer/scripts/package.mjs:25
+	throw new Error(
+	      ^
+
+Error: Release blocked: real invoking-session proof; all six clean OS/CPU runs; verified runtime provenance and dependency licenses; native signing/notarization policy; latest stable React build; verified automatic host platform dispatch/installation. Only --experimental packaging is currently permitted.
+    at file:///home/parallels/projects/genai/beads-viewer/scripts/package.mjs:25:8
+
+Node.js v24.11.1

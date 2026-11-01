@@ -1,0 +1,8 @@
+{
+  "filesVerified": 141,
+  "checksums": "PASS",
+  "productionLayout": "PASS",
+  "privateLauncherConfig": "PASS",
+  "sbom": "present; JSON parsed; schema and complete license audit unverified",
+  "runtimeAcceptance": "UNVERIFIED (see session/browser/platform probes)"
+}

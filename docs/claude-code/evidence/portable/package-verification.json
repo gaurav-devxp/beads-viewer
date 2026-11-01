@@ -1,0 +1,10 @@
+{
+  "artifact": "beads-viewer-0.2.0-claude-code.zip",
+  "filesVerified": 52,
+  "checksums": "PASS",
+  "portableLayout": "PASS",
+  "bundledNativeExecutables": 0,
+  "installedNodeConfig": "PASS",
+  "sbom": "JSON parsed; schema/license audit remains a release check",
+  "platformExecution": "See separate native test records; layout is not execution proof"
+}

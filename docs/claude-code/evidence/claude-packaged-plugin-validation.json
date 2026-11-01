@@ -1,0 +1,13 @@
+{
+  "success": true,
+  "strict": true,
+  "target": "/home/parallels/projects/genai/beads-viewer/artifacts/beads-viewer-0.1.0-linux-arm64-experimental/plugins/beads-viewer/.claude-plugin/plugin.json",
+  "manifest": {
+    "file": "/home/parallels/projects/genai/beads-viewer/artifacts/beads-viewer-0.1.0-linux-arm64-experimental/plugins/beads-viewer/.claude-plugin/plugin.json",
+    "type": "plugin",
+    "errors": [],
+    "warnings": [],
+    "notes": []
+  },
+  "contents": []
+}

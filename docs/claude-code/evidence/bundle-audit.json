@@ -1,0 +1,17 @@
+{
+  "externalImports": [
+    "node:process",
+    "node:http",
+    "node:path",
+    "node:os",
+    "node:fs/promises",
+    "node:child_process",
+    "node:url",
+    "node:sqlite",
+    "node:fs",
+    "node:crypto",
+    "node:events"
+  ],
+  "unbundledNonOSDependencies": [],
+  "bundledInputs": 219
+}

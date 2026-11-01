@@ -1,0 +1,20 @@
+beads-viewer 0.2.0
+  Description: Local multi-repository Beads workspace with a main-conversation Claude relay.
+  Source: beads-viewer@inline
+
+Component inventory
+  Skills (1)  open
+  Agents (0)
+  Hooks (0)
+  MCP servers (1)  beads-viewer  (tool schemas resolved at runtime; not counted)
+  LSP servers (0)
+
+Projected token cost
+  Always-on:   ~25 tok   added to every session
+
+Per-component (rounded)
+  component  always-on  on-invoke
+  open             ~30      ~1.3k
+
+  On-invoke cost is paid each time a skill or agent fires.
+  Token counts are estimates and may differ from actual usage.

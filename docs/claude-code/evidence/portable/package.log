@@ -1,0 +1,14 @@
+{
+  "directory": "/home/parallels/projects/genai/beads-viewer/artifacts/beads-viewer-0.2.0-claude-code",
+  "archive": "/home/parallels/projects/genai/beads-viewer/artifacts/beads-viewer-0.2.0-claude-code.zip",
+  "marketplace": "/home/parallels/projects/genai/beads-viewer/artifacts/beads-viewer-local-marketplace",
+  "distribution": "portable-prebuilt-javascript",
+  "uncompressedBytes": 1411496,
+  "compressedBytes": 349701,
+  "components": {
+    "Metadata/skills": 87388,
+    "Notices": 21519,
+    "MCP/backend": 885129,
+    "Frontend": 417460
+  }
+}

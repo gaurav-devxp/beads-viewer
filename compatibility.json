@@ -1,0 +1,67 @@
+{
+	"schemaVersion": 1,
+	"distribution": "portable-prebuilt-javascript",
+	"prerequisites": {
+		"node": {
+			"range": ">=24.11.1 <25",
+			"minimum": "24.11.1",
+			"maximumExclusive": "25.0.0",
+			"testedVersions": ["24.11.1"],
+			"requiredApis": ["node:sqlite.DatabaseSync"]
+		},
+		"beads": {
+			"supportedVersions": ["1.1.0"],
+			"backend": "dolt",
+			"storageMode": "embedded",
+			"recordSchemaVersion": 1,
+			"storageSchemaVersion": "1.1.0",
+			"requiredFlags": {
+				"list": [
+					"--all",
+					"--limit",
+					"--include-infra",
+					"--include-gates",
+					"--include-templates"
+				],
+				"show": ["--include-comments", "--include-dependents"],
+				"update": ["--set-labels", "--acceptance"],
+				"comments": [],
+				"blocked": [],
+				"delete": ["--dry-run"],
+				"dep": []
+			}
+		}
+	},
+	"host": {
+		"name": "claude-code",
+		"inspectedVersion": "2.1.283",
+		"realSessionProof": "unverified"
+	},
+	"validationTargets": [
+		{
+			"os": "Windows 11",
+			"cpu": "x64",
+			"status": "unverified; no native runner"
+		},
+		{
+			"os": "Windows 11",
+			"cpu": "arm64",
+			"status": "unverified; no native runner"
+		},
+		{ "os": "macOS", "cpu": "x64", "status": "unverified; no native runner" },
+		{ "os": "macOS", "cpu": "arm64", "status": "unverified; no native runner" },
+		{ "os": "Linux", "cpu": "x64", "status": "unverified; no native runner" },
+		{
+			"os": "Linux",
+			"cpu": "arm64",
+			"status": "prerequisite/adapter tests available; browser and listening blocked by sandbox"
+		}
+	],
+	"releaseGates": [
+		"real invoking-session proof",
+		"native OS/CPU acceptance",
+		"browser acceptance",
+		"current React compatibility",
+		"shipped dependency notice and SBOM audit"
+	]
+}

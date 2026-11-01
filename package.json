@@ -1,0 +1,58 @@
+{
+	"name": "beads-viewer",
+	"version": "0.2.0",
+	"private": true,
+	"type": "module",
+	"workspaces": [
+		"apps/*",
+		"packages/*"
+	],
+	"engines": {
+		"node": ">=24.11.1 <25"
+	},
+	"scripts": {
+		"dev": "node --import tsx apps/server/src/main.ts",
+		"dev:web": "vite --config apps/web/vite.config.ts",
+		"build": "node scripts/build.mjs",
+		"start": "node dist/server.mjs",
+		"typecheck": "tsc --noEmit",
+		"lint": "eslint apps packages plugins/beads-viewer/claude-code/src tests",
+		"test": "node --import tsx --test --test-isolation=none --test-concurrency=1 tests/*.test.ts",
+		"test:browser": "playwright test",
+		"package:plugin": "node scripts/package.mjs",
+		"verify:plugin": "claude plugin validate --strict plugins/beads-viewer/claude-code",
+		"check": "npm run typecheck && npm run lint && npm test && npm run build",
+		"doctor": "node scripts/doctor.mjs",
+		"verify:package": "node scripts/verify-package.mjs",
+		"probe:plugin": "node scripts/probe-plugin.mjs"
+	},
+	"dependencies": {
+		"@modelcontextprotocol/sdk": "1.28.0",
+		"@tanstack/react-query": "5.100.8",
+		"lucide-react": "0.468.0",
+		"marked": "15.0.12",
+		"react": "19.2.5",
+		"react-dom": "19.2.5",
+		"zod": "3.25.76",
+		"zustand": "5.0.12"
+	},
+	"devDependencies": {
+		"@eslint/js": "9.39.4",
+		"@playwright/test": "1.59.1",
+		"@tailwindcss/vite": "4.2.2",
+		"@types/node": "24.12.2",
+		"@types/react": "19.2.14",
+		"@types/react-dom": "19.2.3",
+		"@vitejs/plugin-react": "4.7.0",
+		"esbuild": "0.25.12",
+		"eslint": "9.39.4",
+		"tailwindcss": "4.2.2",
+		"tsx": "4.23.0",
+		"typescript": "5.7.3",
+		"typescript-eslint": "8.59.1",
+		"vite": "6.4.2"
+	},
+	"overrides": {
+		"picomatch": "4.0.4"
+	}
+}

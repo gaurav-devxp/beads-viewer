@@ -1,0 +1,3 @@
+Validating marketplace manifest: /home/parallels/projects/genai/beads-viewer/artifacts/beads-viewer-local-marketplace/.claude-plugin/marketplace.json
+
+✔ Validation passed

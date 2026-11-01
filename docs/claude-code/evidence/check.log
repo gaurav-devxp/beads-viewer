@@ -1,0 +1,47 @@
+
+> beads-viewer@0.1.0 check
+> npm run typecheck && npm run lint && npm test && npm run build
+
+
+> beads-viewer@0.1.0 typecheck
+> tsc --noEmit
+
+
+> beads-viewer@0.1.0 lint
+> eslint apps packages plugins/claude-code/src tests
+
+
+> beads-viewer@0.1.0 test
+> node --import tsx --test --test-isolation=none --test-concurrency=1 tests/*.test.ts
+
+✔ canonical Unicode/CRLF and repeated quote anchoring are conservative (1.086667ms)
+(node:80) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ both views, replies, resolution, immutable revisions, dedup and transactional export/import survive restart (13.572208ms)
+✔ schema 1 to 2 migration preserves data and allows separate worktrees of one repository (3.049333ms)
+✔ real embedded Beads: colliding IDs, native CRUD/comments/deps, shell-safe arguments, closed and ready filters, conflict, private PATH (25340.316887ms)
+✔ relay isolates A/B, rejects invalid references and stale/cancelled results, and bounds waits (29.036958ms)
+✔ idle and lifetime expiry fail active jobs without affecting other connections (0.986083ms)
+✔ safe Markdown and anchors share an explicit canonical text across code, Unicode, lists and repeated quotes (61.549792ms)
+✔ HTTP contract with real Beads: one-use credential, Host/Origin/CSRF, scoped roots, dedup, annotations and launch isolation (18763.639634ms)
+ℹ tests 8
+ℹ suites 0
+ℹ pass 8
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 44495.132896
+
+> beads-viewer@0.1.0 build
+> node scripts/build.mjs
+
+vite v6.4.2 building for production...
+transforming...
+✓ 1643 modules transformed.
+rendering chunks...
+computing gzip size...
+../../dist/web/index.html                   0.41 kB │ gzip:   0.28 kB
+../../dist/web/assets/index-DBu3OnqV.css   29.02 kB │ gzip:   6.97 kB
+../../dist/web/assets/index-l-mydkBY.js   387.76 kB │ gzip: 114.79 kB
+✓ built in 2.51s

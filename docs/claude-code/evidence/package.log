@@ -1,0 +1,18 @@
+
+> beads-viewer@0.1.0 package:plugin
+> node scripts/package.mjs --experimental --target linux-arm64 --node /home/parallels/.nvm/versions/node/v24.11.1/bin/node --node-license /home/parallels/.nvm/versions/node/v24.11.1/LICENSE --beads /home/parallels/.local/bin/bd
+
+{
+  "directory": "/home/parallels/projects/genai/beads-viewer/artifacts/beads-viewer-0.1.0-linux-arm64-experimental",
+  "archive": "/home/parallels/projects/genai/beads-viewer/artifacts/beads-viewer-0.1.0-linux-arm64-experimental.zip",
+  "uncompressedBytes": 256086054,
+  "compressedBytes": 88736439,
+  "components": {
+    "Metadata/notices": 612738,
+    "Launcher": 1900706,
+    "Beads": 133949792,
+    "Node": 118343776,
+    "MCP/backend": 861582,
+    "Frontend": 417460
+  }
+}
