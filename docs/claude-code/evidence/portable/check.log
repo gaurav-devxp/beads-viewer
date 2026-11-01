@@ -1,44 +1,46 @@
 
-> beads-viewer@0.2.1 check
+> beads-viewer@0.3.0 check
 > npm run typecheck && npm run lint && npm test && npm run build
 
 
-> beads-viewer@0.2.1 typecheck
+> beads-viewer@0.3.0 typecheck
 > tsc --noEmit
 
 
-> beads-viewer@0.2.1 lint
+> beads-viewer@0.3.0 lint
 > eslint apps packages plugins/beads-viewer/claude-code/src tests
 
 
-> beads-viewer@0.2.1 test
+> beads-viewer@0.3.0 test
 > node --import tsx --test --test-isolation=none --test-concurrency=1 tests/*.test.ts
 
-(node:80) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(node:79) ExperimentalWarning: SQLite is an experimental feature and might change at any time
 (Use `node --trace-warnings ...` to show where the warning was created)
-✔ canonical Unicode/CRLF and repeated quote anchoring are conservative (1.872209ms)
-✔ both views, replies, resolution, immutable revisions, dedup and transactional export/import survive restart (23.574458ms)
-✔ schema 1 to 2 migration preserves data and allows separate worktrees of one repository (1.891708ms)
-✔ portable ZIP retains nested UTF-8 filenames, bytes and standard CRC/end directory (4.250709ms)
-✔ real embedded Beads: colliding IDs, native CRUD/comments/deps, shell-safe arguments, closed and ready filters, conflict, private PATH (17065.016425ms)
-✔ relay isolates A/B, rejects invalid references and stale/cancelled results, and bounds waits (40.450584ms)
-✔ idle and lifetime expiry fail active jobs without affecting other connections (0.259584ms)
-✔ safe Markdown and anchors share an explicit canonical text across code, Unicode, lists and repeated quotes (29.467958ms)
-✔ Node range and SQLite diagnostics precede server import (4.106541ms)
-✔ PATH resolution handles explicit paths, symlinks and failures without using a shell (9.619542ms)
-✔ real installed Beads is discovered and probed without a private runtime (497.998584ms)
-✔ HTTP contract with real Beads: one-use credential, Host/Origin/CSRF, scoped roots, dedup, annotations and launch isolation (12286.047797ms)
-✔ browser auth query succeeds after launch exchange and cookie reload, and rejects a lost session (30.635792ms)
-ℹ tests 13
+✔ canonical Unicode/CRLF and repeated quote anchoring are conservative (2.580375ms)
+✔ both views, replies, resolution, immutable revisions, dedup and transactional export/import survive restart (20.902916ms)
+✔ schema 1 to 2 migration preserves data and allows separate worktrees of one repository (1.818375ms)
+✔ portable ZIP retains nested UTF-8 filenames, bytes and standard CRC/end directory (3.384792ms)
+✔ real embedded Beads: colliding IDs, native CRUD/comments/deps, shell-safe arguments, closed and ready filters, conflict, private PATH (14259.682173ms)
+✔ a parked viewer stays usable without host polling; one event is emitted per new request (1.651791ms)
+✔ on-demand requests isolate sessions and reject invalid references, stale results and cancelled requests (0.82575ms)
+✔ an explicitly requested connection lifetime expires and fails its pending job (0.113084ms)
+✔ safe Markdown and anchors share an explicit canonical text across code, Unicode, lists and repeated quotes (17.035417ms)
+✔ MCP opens without polling, acknowledges channels and completes exact requests with a manual fallback (33.066ms)
+✔ Node range and SQLite diagnostics precede server import (0.624958ms)
+✔ PATH resolution handles explicit paths, symlinks and failures without using a shell (9.745583ms)
+✔ real installed Beads is discovered and probed without a private runtime (366.698458ms)
+✔ HTTP contract with real Beads: one-use credential, Host/Origin/CSRF, scoped roots, dedup, annotations and launch isolation (12382.492547ms)
+✔ browser auth query succeeds after launch exchange and cookie reload, and rejects a lost session (23.091583ms)
+ℹ tests 15
 ℹ suites 0
-ℹ pass 13
+ℹ pass 15
 ℹ fail 0
 ℹ cancelled 0
 ℹ skipped 0
 ℹ todo 0
-ℹ duration_ms 30360.959306
+ℹ duration_ms 27766.119138
 
-> beads-viewer@0.2.1 build
+> beads-viewer@0.3.0 build
 > node scripts/build.mjs
 
 vite v6.4.2 building for production...
@@ -47,6 +49,6 @@ transforming...
 rendering chunks...
 computing gzip size...
 ../../dist/web/index.html                   0.41 kB │ gzip:   0.28 kB
-../../dist/web/assets/index-DBu3OnqV.css   29.02 kB │ gzip:   6.97 kB
-../../dist/web/assets/index-Bwvj5_pF.js   388.06 kB │ gzip: 114.86 kB
-✓ built in 1.61s
+../../dist/web/assets/index-Bkpn4fTt.css   29.21 kB │ gzip:   7.02 kB
+../../dist/web/assets/index-BxgNN0WX.js   388.96 kB │ gzip: 115.11 kB
+✓ built in 1.64s

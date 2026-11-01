@@ -15,11 +15,36 @@ export function equal(a: string, b: string) {
 		y = Buffer.from(b);
 	return x.length === y.length && timingSafeEqual(x, y);
 }
+// Real generation in the invoking conversation can take several minutes at high
+// effort, and a busy conversation only sees channel events on its next turn.
+export const QUEUED_DEADLINE_MS = 30 * 60_000;
+export const RUNNING_DEADLINE_MS = 15 * 60_000;
+// Viewer bookkeeping, not task content: never valid briefing citations.
+const internalFields = new Set([
+	"raw",
+	"workspaceId",
+	"repositoryId",
+	"databaseId",
+	"revision",
+]);
+/** Every source ID a briefing may cite for this exact task revision. */
+export function allowedSources(task: Task) {
+	return {
+		fields: [
+			...new Set([
+				...Object.keys(task).filter((k) => !internalFields.has(k)),
+				...Object.keys(task.raw),
+			]),
+		].sort(),
+		comments: task.comments.map((c) => String(c.id)),
+		dependencies: [
+			...new Set([...task.dependencies, ...task.dependents].map((d) => d.id)),
+		],
+	};
+}
 interface Connection {
 	state: ConnectionState;
 	key: string;
-	idleMs: number;
-	lastWork: number;
 }
 export class Bridge extends EventEmitter {
 	private connections = new Map<string, Connection>();
@@ -53,15 +78,16 @@ export class Bridge extends EventEmitter {
 			host: "claude-code",
 			sessionId,
 			state: "connected",
+			delivery: "manual",
 			createdAt: now,
 			lastSeen: now,
-			expiresAt: now + options.lifetimeSeconds * 1000,
+			expiresAt: options.lifetimeSeconds
+				? now + options.lifetimeSeconds * 1000
+				: null,
 		};
 		this.connections.set(id, {
 			state,
 			key,
-			idleMs: options.idleSeconds * 1000,
-			lastWork: now,
 		});
 		return { connection: { ...state }, relayKey: key };
 	}
@@ -77,6 +103,21 @@ export class Bridge extends EventEmitter {
 			throw new AppError(403, "Connection binding mismatch");
 		return c;
 	}
+	assertSession(id: string, key: string, sessionId: string) {
+		const c = this.touch(id, key);
+		if (c.state.sessionId !== sessionId)
+			throw new AppError(
+				403,
+				"This viewer belongs to a different Claude session",
+			);
+		return c;
+	}
+	channelReady(id: string, key: string, sessionId: string) {
+		const c = this.assertSession(id, key, sessionId);
+		c.state.delivery = "channel";
+		this.emit("change", id);
+		return { ...c.state };
+	}
 	private touch(id: string, key: string) {
 		const c = this.authorize(id, key);
 		this.sweep();
@@ -89,7 +130,7 @@ export class Bridge extends EventEmitter {
 		if (this.state(connectionId).state !== "connected")
 			throw new AppError(
 				409,
-				"Claude relay disconnected. Re-run /beads-viewer:open; CRUD and cached summaries remain available.",
+				"This viewer's AI connection was closed. Re-run /beads-viewer:open for a new connection; task editing and cached briefings remain available.",
 			);
 		const existing = [...this.jobs.values()].find(
 			(j) =>
@@ -118,12 +159,34 @@ export class Bridge extends EventEmitter {
 				operation: "summarize",
 				source,
 				createdAt: now,
-				deadline: now + 180000,
+				deadline: now + QUEUED_DEADLINE_MS,
 				state: "queued",
 			};
-		this.connections.get(connectionId)!.lastWork = now;
 		this.jobs.set(j.id, j);
 		this.emit("change", connectionId);
+		this.emit("request", j);
+		return j;
+	}
+	deliveryFailed(requestId: string) {
+		const j = this.jobs.get(requestId);
+		if (!j || j.state !== "queued") return;
+		j.deliveryError =
+			"Claude could not be notified. Run the briefing command below in the conversation that opened this viewer.";
+		this.emit("change", j.connectionId);
+	}
+	claim(id: string, key: string, sessionId: string, requestId: string) {
+		this.assertSession(id, key, sessionId);
+		const j = this.jobs.get(requestId);
+		if (!j || j.connectionId !== id)
+			throw new AppError(403, "Request belongs to a different launch");
+		if (j.state !== "queued")
+			throw new AppError(
+				409,
+				"Request is no longer queued; it may be running, completed or cancelled",
+			);
+		j.state = "running";
+		j.deadline = Date.now() + RUNNING_DEADLINE_MS;
+		this.emit("change", id);
 		return j;
 	}
 	list(connectionId: string, workspaceId: string, taskId: string) {
@@ -134,67 +197,6 @@ export class Bridge extends EventEmitter {
 				j.workspaceId === workspaceId &&
 				j.taskId === taskId,
 		);
-	}
-	async next(
-		id: string,
-		key: string,
-		waitMs = 10000,
-		signal?: AbortSignal,
-	): Promise<AIRequest | null> {
-		this.touch(id, key);
-		waitMs = Math.min(Math.max(waitMs, 0), 10000);
-		const take = () => {
-			this.touch(id, key);
-			const j = [...this.jobs.values()].find(
-				(j) => j.connectionId === id && j.state === "queued",
-			);
-			if (j) {
-				j.state = "running";
-				this.emit("change", id);
-			}
-			return j || null;
-		};
-		const immediate = take();
-		if (immediate || !waitMs) return immediate;
-		return new Promise((resolve, reject) => {
-			const timer = setTimeout(() => {
-				clean();
-				try {
-					this.touch(id, key);
-					resolve(null);
-				} catch (e) {
-					reject(e);
-				}
-			}, waitMs);
-			const clean = () => {
-				clearTimeout(timer);
-				this.off("change", onChange);
-				signal?.removeEventListener("abort", abort);
-			};
-			const check = () => {
-				try {
-					const j = take();
-					if (j) {
-						clean();
-						resolve(j);
-					}
-				} catch (e) {
-					clean();
-					reject(e);
-				}
-			};
-			const onChange = (changed: string) => {
-				if (changed === id) queueMicrotask(check);
-			};
-			const abort = () => {
-				clean();
-				this.detach(id, key, "Host interrupted the queue wait");
-				reject(new AppError(499, "Relay wait cancelled"));
-			};
-			this.on("change", onChange);
-			signal?.addEventListener("abort", abort, { once: true });
-			if (signal?.aborted) abort();
-		});
 	}
 	private owned(id: string, key: string, requestId: string) {
 		this.touch(id, key);
@@ -216,22 +218,24 @@ export class Bridge extends EventEmitter {
 		if (j.sourceHash !== sourceHash)
 			throw new AppError(409, "Result source hash does not match request");
 		const content = summaryContent.parse(result);
-		for (const b of content.blocks)
-			for (const ref of b.sources) {
-				const valid =
-					ref.kind === "field"
-						? Object.hasOwn(j.source.raw, ref.id)
-						: ref.kind === "comment"
-							? j.source.comments.some((c) => String(c.id) === ref.id)
-							: [...j.source.dependencies, ...j.source.dependents].some(
-									(d) => d.id === ref.id,
-								);
-				if (!valid)
-					throw new AppError(
-						422,
-						`Unknown source reference ${ref.kind}:${ref.id}`,
-					);
-			}
+		const allowed = allowedSources(j.source);
+		const known = {
+			field: new Set(allowed.fields),
+			comment: new Set(allowed.comments),
+			dependency: new Set(allowed.dependencies),
+		};
+		// Report every bad reference at once so one corrected retry can succeed.
+		const invalid = content.blocks.flatMap((b) =>
+			b.sources
+				.filter((ref) => !known[ref.kind].has(ref.id))
+				.map((ref) => `${b.id} → ${ref.kind}:${ref.id}`),
+		);
+		if (invalid.length)
+			throw new AppError(
+				422,
+				`Unknown source references: ${invalid.join(", ")}. The request is still running: correct every listed reference and call complete_request again. ` +
+					`Allowed field IDs: ${allowed.fields.join(", ")}. Comment IDs: ${allowed.comments.join(", ") || "(none)"}. Dependency IDs: ${allowed.dependencies.join(", ") || "(none)"}.`,
+			);
 		const current = await this.currentHash(j.workspaceId, j.taskId);
 		this.owned(id, key, requestId);
 		if (current !== sourceHash) {
@@ -253,7 +257,6 @@ export class Bridge extends EventEmitter {
 			sessionId: c.state.sessionId,
 			connectionId: id,
 		};
-		c.lastWork = Date.now();
 		this.persist(s);
 		j.result = s;
 		j.state = "complete";
@@ -297,26 +300,17 @@ export class Bridge extends EventEmitter {
 		for (const [id, c] of this.connections)
 			if (
 				c.state.state === "connected" &&
-				(now >= c.state.expiresAt ||
-					now - c.state.lastSeen > 180000 ||
-					(![...this.jobs.values()].some(
-						(j) =>
-							j.connectionId === id && ["queued", "running"].includes(j.state),
-					) &&
-						now - c.lastWork > c.idleMs))
+				c.state.expiresAt !== null &&
+				now >= c.state.expiresAt
 			) {
-				this.disconnect(
-					id,
-					now >= c.state.expiresAt
-						? "Relay lifetime limit reached"
-						: "Relay idle limit or host heartbeat expired",
-				);
+				this.disconnect(id, "Viewer connection lifetime limit reached");
 				c.state.state = "expired";
 			}
 		for (const j of this.jobs.values()) {
 			if (["queued", "running"].includes(j.state) && now >= j.deadline) {
 				j.state = "failed";
-				j.error = "AI request deadline exceeded";
+				j.error =
+					"Claude did not complete this request in time. Generate it again and use the briefing command in the conversation that opened this viewer.";
 				this.emit("change", j.connectionId);
 			}
 			if (

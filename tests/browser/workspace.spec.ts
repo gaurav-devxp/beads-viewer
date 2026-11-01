@@ -117,7 +117,20 @@ test("multi-repository workflow, source comments, summary annotations and reload
 		await page
 			.getByRole("button", { name: "Generate briefing", exact: true })
 			.click();
-		const job = await app.bridge.next(opened.connection.id, opened.relayKey, 0);
+		// The request exists once the browser shows its one-request command.
+		await expect(page.getByLabel("Claude briefing command")).toBeVisible();
+		const queued = app.bridge
+			.list(opened.connection.id, f.repos[0].workspaceId, "same-collision")
+			.at(-1)!;
+		await expect(page.getByLabel("Claude briefing command")).toHaveValue(
+			`/beads-viewer:brief ${JSON.stringify({ connectionId: opened.connection.id, requestId: queued.id })}`,
+		);
+		const job = app.bridge.claim(
+			opened.connection.id,
+			opened.relayKey,
+			"browser-transport-fixture",
+			queued.id,
+		);
 		expect(job).toBeTruthy();
 		await app.bridge.complete(
 			opened.connection.id,

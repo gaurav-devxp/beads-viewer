@@ -1,6 +1,6 @@
-# Status — portable dependency correction implemented, release verification incomplete
+# Status — 0.3.2 verified on the installed plugin (Linux arm64); release verification incomplete
 
-Version 0.2 uses installed Node and Beads. The native Go launcher, platform runtime
+Version 0.3 uses installed Node and Beads. The native Go launcher, platform runtime
 copies, `runtime-lock.json` and cross-build script have been removed. Packaging
 produces one Claude JS/assets artifact with integrity metadata and no native runtime
 or addon dependencies. See [PORTABLE_RUNTIME.md](PORTABLE_RUNTIME.md).
@@ -11,7 +11,7 @@ versions/capabilities and supports PATH discovery or an explicit existing execut
 path. Native Windows command shims are rejected with actionable guidance if no safe
 underlying executable/JS entry point can be selected. No automatic install/migration
 or shell interpolation is introduced. The original annotation schema/data and
-main-turn relay are preserved. The Codex integration remains a scaffold.
+same-session provenance are preserved. The Codex integration remains a scaffold.
 
 Portable packaging does not certify native platforms. Windows 11 x64/arm64, macOS
 x64/arm64 and Linux x64 still lack native execution evidence here. Linux arm64 can
@@ -33,3 +33,22 @@ broker adoption is not implemented; database identity replacement under an alrea
 registered root and portable identity remapping after moving a repository remain
 unsupported. Unsaved task drafts survive tab/modal changes within a page, not browser
 restart. No public release or global host configuration change was made.
+
+Version 0.3 replaces the blocking relay with one-event Channels delivery and an
+explicit one-request briefing fallback. Opening the viewer returns control without
+polling or disconnecting. Default idle/lifetime expiry is removed; individual jobs
+remain bounded (30 minutes queued, 15 minutes claimed). Channel readiness requires
+an acknowledgement. Custom Channels need the terminal CLI started with
+`--dangerously-load-development-channels plugin:beads-viewer@beads-viewer-local`;
+the VS Code extension cannot deliver channel events, so it uses the
+`/beads-viewer:brief` command. No host configuration was changed.
+
+The installed plugin was exercised with real Claude conversations, a real browser
+and real inference: open, unrelated command, more than five idle minutes,
+channel-delivered briefing, cancellation, stale-source rejection and comments on
+0.3.1; manual briefing, the comment fix and the update procedure on 0.3.2 (the two
+differ only by that fix). 0.3.1 fixed the briefing validator
+that rejected real task fields and the too-short claim deadline; 0.3.2 fixed inline
+comments after an ordinary comment. Packaging stages each version in its own
+marketplace folder. See [VERIFICATION.md](VERIFICATION.md) for root cause and
+results. Windows, macOS and clicking through the VS Code panel remain unverified.

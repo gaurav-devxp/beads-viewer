@@ -1,6 +1,6 @@
 # Portable runtime and dependency contract
 
-Beads Viewer 0.2 uses installed Node.js and Beads. The same prebuilt JavaScript and
+Beads Viewer 0.3 uses installed Node.js and Beads. The same prebuilt JavaScript and
 browser assets are packaged for every OS/CPU; no Node, bd, Dolt, Go launcher or
 native-addon binary is distributed. The Codex integration remains a scaffold.
 
@@ -35,10 +35,49 @@ skill tells the main conversation to check the fixed commands `node --version` a
 before attempting unavailable MCP calls. Claude's own failed-server status is the
 fallback when the skill or host execution tool cannot run. CLI component discovery with an
 unavailable Node command passed here; actual skill/inference behavior requires separate host checks;
-no automatic model wake-up or permission bypass is introduced.
+ordinary tool permissions still apply.
 
 A source checkout is not a staged plugin. Run contributor build and packaging first;
 missing prebuilt metadata/runtime produces an actionable error.
+
+## Nonblocking viewer and Human view
+
+`/beads-viewer:open` selects the invoking repository and opens the browser by default.
+Its turn ends after startup. The MCP server owns the local HTTP process, so returning
+to the Claude input does not stop the viewer. The former polling tool is removed.
+There is no default connection idle/heartbeat timeout. Explicit lifetimeSeconds,
+Disconnect, or stopping the host can end a connection. Existing idleSeconds inputs
+are accepted for compatibility but no longer disconnect a parked viewer.
+
+For automatic requests, the MCP server declares the documented experimental
+`claude/channel` capability. A one-time probe carries a private random nonce;
+channel_ready validates that nonce and the invoking session before marking delivery
+ready. Writing an event to stdio alone does not prove that the host received it.
+Each new queued job emits one notification with generated routing IDs, never task
+text or relay keys. Claude claims exactly that request and returns its structured
+result through ordinary MCP tools. There is no permission-relay capability.
+
+Custom Channels currently require Claude's explicit interactive startup opt-in:
+
+```sh
+claude --dangerously-load-development-channels plugin:beads-viewer@beads-viewer-local
+```
+
+This is for the generated local marketplace install. The plugin does not launch
+this command, accept the confirmation, enable organization policies or edit global
+settings. Direct --plugin-dir trials can use the manual fallback without Channels.
+Actual inference uses the existing session; it is not a concurrent second model.
+
+If the channel is unavailable or its event is delayed/dropped, Human view shows
+`/beads-viewer:brief` with connection/request IDs. The user runs it in the original
+conversation; claim_request checks its substituted session ID against the launch.
+It claims one queued request and returns immediately. Duplicate, foreign, cancelled,
+expired and stale work is rejected. Queued requests have ten minutes to be claimed;
+claimed work has three minutes to complete. Neither timeout ends the viewer.
+
+The browser's one-use exchange and cookie/CSRF model, source-conflict checks,
+summary schema, annotation storage and native Beads data remain unchanged.
+Official contract: [Channels reference](https://code.claude.com/docs/en/channels-reference).
 
 ## Selecting installed Beads
 
@@ -80,12 +119,14 @@ or entire environments.
 ## Packaging and state
 
 `npm run package:plugin` builds one experimental Claude artifact from prebuilt files:
-`artifacts/beads-viewer-0.2.1-claude-code.zip`. Its archive root is the plugin root,
-usable after extraction or through a compatible host's documented ZIP loader.
+`artifacts/beads-viewer-<version>-claude-code.zip`. Its archive root is the plugin
+root, usable after extraction or through a compatible host's documented ZIP loader.
 A generated local marketplace is also staged at
-`artifacts/beads-viewer-local-marketplace`, with the host adapter at
-`plugins/beads-viewer/claude-code`. This is separate from the future source repository
-catalogs and does not register anything globally.
+`artifacts/beads-viewer-local-marketplace`, with each version's host adapter in its
+own `plugins/beads-viewer/claude-code-<version>` folder. Claude loads this directory
+marketplace in place at conversation start, so staging never overwrites a folder a
+running conversation may use (`--replace-staged` forces it). This is separate from
+the future source repository catalogs and does not register anything globally.
 
 Packaging uses Node built-ins to write ZIP, checksums, size metadata and a CycloneDX
 inventory of bundled JavaScript libraries. It does not require installed Beads,

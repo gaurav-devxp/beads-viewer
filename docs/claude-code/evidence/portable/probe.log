@@ -1,5 +1,5 @@
 
-> beads-viewer@0.2.0 probe:plugin
+> beads-viewer@0.3.0 probe:plugin
 > node scripts/probe-plugin.mjs
 
 Read-only installed package outside checkout, spaces/Unicode: prerequisite checks PASS

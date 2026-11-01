@@ -48,6 +48,7 @@ import {
 	type Anchor,
 	type Thread,
 	type Filters,
+	type ConnectionState,
 } from "@bv/contracts";
 import { api, authenticate, snapshot, detail } from "./api";
 import { useUI } from "./state";
@@ -454,7 +455,9 @@ function App() {
 							{liveDisconnected
 								? "Live updates lost"
 								: data.data?.connection.state === "connected"
-									? "Claude relay active"
+									? data.data.connection.delivery === "channel"
+										? "Claude channel ready"
+										: "Claude on request"
 									: "AI disconnected"}
 						</span>
 					</div>
@@ -838,10 +841,17 @@ function App() {
 						{liveDisconnected
 							? "Live updates disconnected. Loaded task data may be stale; use Refresh to retry."
 							: data.data?.connection.state === "connected"
-								? `Summaries are handled by your invoking Claude conversation (${data.data.connection.sessionId.slice(0, 8)}…). Relay occupies that terminal turn.`
+								? data.data.connection.delivery === "channel"
+									? "Viewer ready. Human view requests are sent to your Claude conversation when you click Generate briefing."
+									: "Viewer ready. Claude is free for other work. Human view shows a command to run in the conversation that opened this viewer; enabled Channels can handle it automatically."
 								: data.data?.connection.reason ||
 									"Connect from Claude Code for Human view. Task editing and cached briefings work independently."}
 					</span>
+					{data.data?.viewerVersion && (
+						<small className="viewer-version">
+							Beads Viewer {data.data.viewerVersion}
+						</small>
+					)}
 					{data.data?.connection.state === "connected" && (
 						<button
 							onClick={() =>
@@ -863,6 +873,7 @@ function App() {
 					tab={filters.tab === "human" ? "human" : "agent"}
 					setTab={(tab) => update({ tab }, true)}
 					repositories={repositories}
+					connection={data.data?.connection}
 					onOpen={(t) => update({ workspace: t.workspaceId, task: t.id })}
 					onClose={() => update({ task: null, workspace: null, tab: null })}
 				/>
@@ -893,8 +904,8 @@ function App() {
 							accepts arbitrary browser paths.
 						</p>
 						<p>
-							Disconnect the relay, then launch a new connection with all
-							repositories you want to browse:
+							Launch a new viewer connection with all repositories you want to
+							browse:
 						</p>
 						<pre>
 							/beads-viewer:open{" "}
@@ -915,6 +926,32 @@ function App() {
 					</div>
 				</Dialog>
 			)}
+		</div>
+	);
+}
+function BriefCommand({ command }: { command: string }) {
+	const [copied, setCopied] = useState(false);
+	return (
+		<div className="brief-command">
+			<label>
+				Claude briefing command
+				<input
+					aria-label="Claude briefing command"
+					readOnly
+					value={command}
+					onFocus={(event) => event.currentTarget.select()}
+				/>
+			</label>
+			<button
+				onClick={() =>
+					void navigator.clipboard
+						.writeText(command)
+						.then(() => setCopied(true))
+						.catch(() => setCopied(false))
+				}
+			>
+				{copied ? "Copied" : "Copy"}
+			</button>
 		</div>
 	);
 }
@@ -1186,6 +1223,7 @@ function TaskDialog({
 	tab,
 	setTab,
 	repositories,
+	connection,
 	onClose,
 	onOpen,
 }: {
@@ -1194,6 +1232,7 @@ function TaskDialog({
 	tab: "agent" | "human";
 	setTab: (t: "agent" | "human") => void;
 	repositories: Repository[];
+	connection: ConnectionState | undefined;
 	onClose: () => void;
 	onOpen: (t: Task) => void;
 }) {
@@ -1614,7 +1653,7 @@ function TaskDialog({
 													<RefreshCw size={15} />
 													{request
 														? request.state === "queued"
-															? "Waiting for Claude…"
+															? "Request queued"
 															: "Claude is writing…"
 														: summary
 															? "Regenerate"
@@ -1623,7 +1662,21 @@ function TaskDialog({
 											</div>
 											{request && (
 												<div className="job-state" role="status">
-													This request is bound to the invoking session.{" "}
+													<div className="briefing-delivery">
+														<p>
+															{request.state === "running"
+																? "Claude is writing this briefing."
+																: request.deliveryError ||
+																	(connection?.delivery === "channel"
+																		? "Sent to Claude. If it stays queued, run the command below in the conversation that opened this viewer."
+																		: "Run this command in the Claude conversation that opened this viewer. Channels can handle future requests automatically when enabled.")}
+														</p>
+														{request.state === "queued" && (
+															<BriefCommand
+																command={`/beads-viewer:brief ${JSON.stringify({ connectionId: request.connectionId, requestId: request.id })}`}
+															/>
+														)}
+													</div>
 													<button
 														onClick={() =>
 															void mutate("cancel", "POST", {

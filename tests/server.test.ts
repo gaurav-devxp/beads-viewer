@@ -184,6 +184,41 @@ test("HTTP contract with real Beads: one-use credential, Host/Origin/CSRF, scope
 			).status,
 			409,
 		);
+		// A Beads comment changes the task revision but not the quoted field, so a
+		// selection made just before the page refreshed must still anchor.
+		const commented = await request(
+			taskPath + "/comments",
+			"POST",
+			{ text: "Ordinary comment before an inline one" },
+			{ ...h, "idempotency-key": randomUUID() },
+		);
+		assert.equal(commented.status, 200, await commented.clone().text());
+		const rebased = await request(
+			taskPath + "/threads",
+			"POST",
+			{ anchor, text: "Inline after ordinary comment" },
+			{ ...h, "idempotency-key": randomUUID() },
+		);
+		assert.equal(rebased.status, 200, await rebased.clone().text());
+		const latest = await (
+			await request(taskPath, "GET", undefined, { cookie })
+		).json();
+		assert.notEqual(latest.task.revision, anchor.sourceRevision);
+		assert.equal(
+			(await rebased.json()).anchor.sourceRevision,
+			latest.task.revision,
+		);
+		assert.equal(
+			(
+				await request(
+					taskPath + "/threads",
+					"POST",
+					{ anchor: { ...anchor, exact: "changed" }, text: "stale quote" },
+					{ ...h, "idempotency-key": randomUUID() },
+				)
+			).status,
+			409,
+		);
 		const jobResponse = await request(
 			taskPath + "/summarize",
 			"POST",
@@ -191,8 +226,18 @@ test("HTTP contract with real Beads: one-use credential, Host/Origin/CSRF, scope
 			{ ...h, "idempotency-key": randomUUID() },
 		);
 		assert.equal(jobResponse.status, 200);
-		assert.equal(await app.bridge.next(b.connection.id, b.relayKey, 0), null);
-		const consumed = await app.bridge.next(a.connection.id, a.relayKey, 0);
+		const job = await jobResponse.json();
+		assert.throws(
+			() =>
+				app.bridge.claim(b.connection.id, b.relayKey, "session-BBBB", job.id),
+			/different launch/,
+		);
+		const consumed = app.bridge.claim(
+			a.connection.id,
+			a.relayKey,
+			"session-AAAA",
+			job.id,
+		);
 		assert.equal(consumed?.taskId, "same-collision");
 		const summary = await app.bridge.complete(
 			a.connection.id,
@@ -309,7 +354,7 @@ test("HTTP contract with real Beads: one-use credential, Host/Origin/CSRF, scope
 		);
 		assert.equal(
 			app.store.threads(f.repos[0].workspaceId, "same-collision").length,
-			2,
+			3,
 		);
 		assert.equal(
 			app.store.summaries(f.repos[0].workspaceId, "same-collision").length,

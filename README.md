@@ -4,7 +4,7 @@ A local browser UI for people already using Beads, with multi-repository task
 management, Agent view, Human view and persistent discussions.
 
 **Prerequisites: your authenticated host, supported Node.js, and working Beads.**
-The 0.2 Claude package contains prebuilt JavaScript and browser assets; it does not
+The 0.3 Claude package contains prebuilt JavaScript and browser assets; it does not
 bundle Node, Beads, Dolt or native launchers. There is one archive per host variant,
 with no OS/CPU-specific runtime downloads or build steps during consumer startup.
 
@@ -31,46 +31,75 @@ bd version
 
 The same archive is intended for Windows, macOS and Linux with compatible installed
 dependencies. Native execution on each OS/CPU still requires verification; Windows
-11 x64 support is not inferred from a Linux build. This environment prohibits
-loopback listening and Chromium startup, so actual browser and invoking-session
-inference remain unverified. Historical 0.1 Linux-runtime archives are superseded.
+11 x64 support is not inferred from a Linux build. The installed plugin, a real
+browser and same-conversation inference were exercised on Linux arm64; see
+[VERIFICATION.md](docs/claude-code/VERIFICATION.md). Historical 0.1 Linux-runtime
+archives are superseded.
 
 ## Install for Claude Code
 
-Obtain the prebuilt `beads-viewer-0.2.1-claude-code.zip` from the builder and extract
+Obtain the prebuilt `beads-viewer-0.3.2-claude-code.zip` from the builder and extract
 it with your OS archive utility. No public release URL is configured yet. Start
 Claude with the extracted **plugin root**:
 
 ```sh
-claude --plugin-dir "/absolute/path/to/beads-viewer-0.2.1-claude-code"
+claude --plugin-dir "/absolute/path/to/beads-viewer-0.3.2-claude-code"
 ```
 
 For a package generated locally, from the project root:
 
 ```sh
-claude --plugin-dir "./artifacts/beads-viewer-0.2.1-claude-code"
+claude --plugin-dir "./artifacts/beads-viewer-0.3.2-claude-code"
 ```
 
 The archive root is also the plugin root; compatible Claude versions document ZIP
 loading through `--plugin-dir`. Verify the installed host's behavior. A raw source
 adapter has no staged runtime until contributor build/packaging.
 
-In that same conversation:
+In your existing Beads repository, run:
 
 ```text
-/beads-viewer:open {"repositories":["/absolute/path/to/first-repo","/absolute/path/to/second-repo"],"openBrowser":true}
+/beads-viewer:open
 ```
 
-Use existing compatible Beads repositories. `openBrowser:false` reports a one-time
-local URL. The same-turn relay occupies the invoking Claude turn and uses normal
-session authentication, permissions and limits; Disconnect/interruption/expiry
-stops it. MCP alone does not start inference. No API key is required by this plugin.
+The skill selects Claude's current repository, opens the browser and ends its turn.
+The MCP process keeps the viewer running; Claude remains available for other commands.
+Optional JSON can explicitly select additional repositories or initial filters.
+No provider API key is required by this plugin.
+
+For browser-triggered Human view generation, install through the local marketplace
+below and start Claude **in a terminal** with this plugin's channel enabled:
+
+```sh
+claude --dangerously-load-development-channels plugin:beads-viewer@beads-viewer-local
+```
+
+Accept Claude's interactive development-channel confirmation only for this plugin.
+This is Claude's documented custom-channel preview flow, not a permission bypass.
+Organization policies may block Channels; the plugin never changes those policies.
+Then run `/beads-viewer:open` normally. The browser reports channel readiness only
+after Claude acknowledges it. Generate briefing sends one event; there is no idle
+polling. Actual generation uses a normal Claude turn, and events arriving while
+Claude is busy wait for the next turn.
+
+The VS Code extension runs Claude without an interactive terminal, and Claude
+ignores the development-channel flag there (as documented for SDK/`-p` sessions).
+VS Code conversations therefore always use the manual command below.
+
+Without enabled Channels, Generate briefing displays a `/beads-viewer:brief` command.
+Copy it into the **same conversation** that opened the viewer to generate exactly
+one briefing and return control. This fallback also works if a channel event is
+not delivered. A parked viewer no longer expires because Claude is idle; queued
+requests wait up to 30 minutes and claimed generation has 15 minutes.
+Explicit Disconnect or exiting Claude stops new AI requests.
+See the [Claude guide](plugins/beads-viewer/claude-code/README.md) and
+[official Channels reference](https://code.claude.com/docs/en/channels-reference).
 
 Before opening a broker, the bootstrap checks Node/SQLite and installed Beads. To
 run only those checks:
 
 ```sh
-node "/absolute/path/to/beads-viewer-0.2.1-claude-code/launch.cjs" --check
+node "/absolute/path/to/beads-viewer-0.3.2-claude-code/launch.cjs" --check
 ```
 
 If Node itself is missing, JavaScript cannot run: the launch skill/host startup
@@ -101,8 +130,30 @@ claude plugin uninstall beads-viewer@beads-viewer-local
 ```
 
 A `--plugin-dir` trial ends by omitting that option next time. Viewer data and
-Beads repositories are outside the installed package. When replacing the old 0.1
-build, refresh/reinstall the plugin and reconnect; do not mix artifact contents.
+Beads repositories are outside the installed package.
+
+### Updating the installed plugin
+
+Claude reads a directory marketplace **in place when a conversation starts**, and
+that conversation keeps the skills and MCP server it started with. Each packaged
+version is therefore staged in its own folder,
+`artifacts/beads-viewer-local-marketplace/plugins/beads-viewer/claude-code-<version>`,
+and `marketplace.json` points at the newest one. A rebuild never changes files under
+a running conversation; packaging refuses to overwrite an already staged version.
+
+1. Bump the version in `package.json` and the plugin's `plugin.json`, then run
+   `npm run check` and `npm run package:plugin`.
+2. Confirm `claude plugin list` shows the new **Version** and **Read from** folder.
+   No `claude plugin update` or reinstall is needed for this marketplace.
+3. Start a **new** Claude conversation. Terminal: exit Claude and run it again (with
+   the channel flag above if wanted). VS Code: open a new Claude conversation, or
+   run **Developer: Reload Window**. Already-open conversations keep the old version.
+4. Run `/beads-viewer:open`. Claude reports the viewer version, and the browser
+   footer shows **Beads Viewer <version>**.
+
+If a conversation still calls `next_request` or the browser reports "Claude relay
+disconnected", that conversation loaded a 0.2 build before the update: start a new
+conversation. Older staged folders can be deleted once no conversation uses them.
 
 The command is `/beads-viewer:open`; `/beads-viewer` requires the optional project
 alias described in the [Claude guide](plugins/beads-viewer/claude-code/README.md).

@@ -58,6 +58,7 @@ for (const file of [
 	".mcp.json",
 	".claude-plugin/plugin.json",
 	"skills/open/SKILL.md",
+	"skills/brief/SKILL.md",
 	"sbom.cdx.json",
 	"package-manifest.json",
 ])

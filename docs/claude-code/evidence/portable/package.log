@@ -1,14 +1,14 @@
 {
-  "directory": "/home/parallels/projects/genai/beads-viewer/artifacts/beads-viewer-0.2.1-claude-code",
-  "archive": "/home/parallels/projects/genai/beads-viewer/artifacts/beads-viewer-0.2.1-claude-code.zip",
+  "directory": "/home/parallels/projects/genai/beads-viewer/artifacts/beads-viewer-0.3.0-claude-code",
+  "archive": "/home/parallels/projects/genai/beads-viewer/artifacts/beads-viewer-0.3.0-claude-code.zip",
   "marketplace": "/home/parallels/projects/genai/beads-viewer/artifacts/beads-viewer-local-marketplace",
   "distribution": "portable-prebuilt-javascript",
-  "uncompressedBytes": 1402571,
-  "compressedBytes": 345210,
+  "uncompressedBytes": 1416948,
+  "compressedBytes": 351533,
   "components": {
-    "Metadata/skills": 78439,
+    "Metadata/skills": 86599,
     "Notices": 21519,
-    "MCP/backend": 885129,
-    "Frontend": 417484
+    "MCP/backend": 890252,
+    "Frontend": 418578
   }
 }

@@ -1,4 +1,4 @@
-Archive:  artifacts/beads-viewer-0.2.1-claude-code.zip
+Archive:  artifacts/beads-viewer-0.3.0-claude-code.zip
     testing: .claude-plugin/plugin.json   OK
     testing: .mcp.json                OK
     testing: PORTABLE_RUNTIME.md      OK
@@ -47,9 +47,10 @@ Archive:  artifacts/beads-viewer-0.2.1-claude-code.zip
     testing: package-manifest.json    OK
     testing: runtime/mcp.mjs          OK
     testing: runtime/prerequisites.cjs   OK
-    testing: runtime/web/assets/index-Bwvj5_pF.js   OK
-    testing: runtime/web/assets/index-DBu3OnqV.css   OK
+    testing: runtime/web/assets/index-Bkpn4fTt.css   OK
+    testing: runtime/web/assets/index-BxgNN0WX.js   OK
     testing: runtime/web/index.html   OK
     testing: sbom.cdx.json            OK
+    testing: skills/brief/SKILL.md    OK
     testing: skills/open/SKILL.md     OK
-No errors detected in compressed data of artifacts/beads-viewer-0.2.1-claude-code.zip.
+No errors detected in compressed data of artifacts/beads-viewer-0.3.0-claude-code.zip.

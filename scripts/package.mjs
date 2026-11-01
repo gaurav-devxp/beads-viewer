@@ -19,7 +19,11 @@ if (args.includes("--help")) {
 	);
 	process.exit(0);
 }
-if (args.some((arg) => !["--release", "--experimental"].includes(arg)))
+if (
+	args.some(
+		(arg) => !["--release", "--experimental", "--replace-staged"].includes(arg),
+	)
+)
 	throw new Error(
 		"Unknown packaging option. This portable package has no OS/CPU target or bundled runtime inputs.",
 	);
@@ -34,6 +38,22 @@ const identity = JSON.parse(
 );
 if (identity.version !== pkg.version)
 	throw new Error("Root and plugin versions disagree");
+// Claude loads directory-marketplace plugins in place. Each version gets its own
+// directory so a rebuild never swaps files under a running Claude session (which
+// would pair an old MCP process with new skills or browser assets). Older version
+// directories are left for sessions that still use them; delete them by hand once
+// every Claude session has been restarted.
+const marketplace = resolve("artifacts", "beads-viewer-local-marketplace");
+const staged = `plugins/beads-viewer/claude-code-${pkg.version}`;
+const plugin = join(marketplace, staged);
+const exists = await stat(plugin).then(
+	() => true,
+	() => false,
+);
+if (exists && !args.includes("--replace-staged"))
+	throw new Error(
+		`Version ${pkg.version} is already staged at ${plugin}. Bump the version, or pass --replace-staged only when no Claude session is using it.`,
+	);
 const meta = JSON.parse(await readFile("dist/mcp.mjs.meta.json", "utf8"));
 const external = [
 	...new Set(
@@ -239,8 +259,6 @@ const sizes = {
 	components: breakdown,
 };
 await writeFile(output + "-sizes.json", JSON.stringify(sizes, null, 2));
-const marketplace = resolve("artifacts", "beads-viewer-local-marketplace");
-const plugin = join(marketplace, "plugins/beads-viewer/claude-code");
 await mkdir(dirname(plugin), { recursive: true });
 await rm(plugin, { recursive: true, force: true });
 await cp(output, plugin, { recursive: true });
@@ -256,7 +274,7 @@ await writeFile(
 			plugins: [
 				{
 					name: identity.name,
-					source: "./plugins/beads-viewer/claude-code",
+					source: `./${staged}`,
 					description:
 						"Experimental portable plugin; requires installed Node.js and Beads.",
 				},
@@ -268,7 +286,7 @@ await writeFile(
 );
 console.log(
 	JSON.stringify(
-		{ directory: output, archive, marketplace, ...sizes },
+		{ directory: output, archive, marketplace, staged: plugin, ...sizes },
 		null,
 		2,
 	),

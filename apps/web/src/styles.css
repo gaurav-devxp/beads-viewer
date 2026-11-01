@@ -747,6 +747,21 @@ nav {
 	margin-left: auto;
 	font-size: 10px;
 }
+.relay-notice .viewer-version {
+	margin-left: auto;
+	white-space: nowrap;
+}
+.relay-notice .viewer-version + button {
+	margin-left: 0;
+}
+.viewer-version {
+	margin-left: auto;
+	white-space: nowrap;
+	opacity: 0.8;
+}
+.viewer-version + button {
+	margin-left: 0;
+}
 .empty {
 	text-align: center;
 	padding: 80px 15px;
@@ -1087,6 +1102,43 @@ mark {
 	font-size: 11px;
 	align-items: center;
 	color: var(--muted);
+}
+.briefing-delivery {
+	min-width: 0;
+	flex: 1;
+}
+.briefing-delivery p {
+	margin: 0 0 8px;
+}
+.briefing-delivery label {
+	display: grid;
+	gap: 6px;
+}
+.briefing-delivery input {
+	width: 100%;
+	min-width: 0;
+	font-family: monospace;
+}
+.brief-command {
+	display: flex;
+	align-items: flex-end;
+	gap: 8px;
+}
+.brief-command label {
+	flex: 1;
+	min-width: 0;
+}
+.brief-command button {
+	font-size: 10px;
+}
+.brief-command {
+	display: flex;
+	align-items: flex-end;
+	gap: 8px;
+}
+.brief-command label {
+	flex: 1;
+	min-width: 0;
 }
 .job-state button {
 	font-size: 10px;

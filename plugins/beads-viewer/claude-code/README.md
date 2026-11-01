@@ -6,7 +6,8 @@ for dependency resolution, compatibility and remaining verification limits.
 
 ## Prerequisites
 
-- Normally authenticated Claude Code. Version 2.1.283 was inspected.
+- Normally authenticated Claude Code. CLI 2.1.283/2.1.316 and the VS Code
+  extension's 2.1.314 binary were exercised.
 - Node `>=24.11.1 <25`, with built-in SQLite enabled, on the host process PATH.
 - Working Beads **1.1.0** using existing embedded Dolt workspaces. The adapter validates
   version/help/schema; other releases/storage modes are not automatically supported.
@@ -29,42 +30,71 @@ with `BV_BD_BINARY`. See the runtime guide above for safe path examples.
 
 ## Install or try the portable package
 
-Obtain the prebuilt `beads-viewer-0.2.1-claude-code.zip` from the builder and extract
+Obtain the prebuilt `beads-viewer-0.3.2-claude-code.zip` from the builder and extract
 it with the OS archive utility. There is no configured public release URL yet.
 Start a new Claude session with the extracted **plugin root**:
 
 ```sh
-claude --plugin-dir "/absolute/path/to/beads-viewer-0.2.1-claude-code"
+claude --plugin-dir "/absolute/path/to/beads-viewer-0.3.2-claude-code"
 ```
 
 A compatible Claude CLI can also load the plugin ZIP directly; actual loader
 results are recorded separately. Do not point at a raw source adapter before its
 prebuilt runtime is staged.
 
-In that same Claude conversation, invoke:
+Inside an existing Beads repository, invoke:
 
 ```text
-/beads-viewer:open {"repositories":["/absolute/path/to/first-repo","/absolute/path/to/second-repo"],"openBrowser":true}
+/beads-viewer:open
 ```
 
-Each repository must already have a compatible Beads workspace. Set `openBrowser`
-to false to receive a one-time browser link. Options also support initial filters,
-task/tab and bounded idle/lifetime settings:
+The current repository and opening the browser are defaults. The command opens the
+viewer and **ends its turn immediately**; no polling, waiting or background Claude
+worker is started. MCP keeps the UI running while you use Claude normally. Additional
+repositories and filters remain optional JSON:
 
 ```text
-/beads-viewer:open {"repositories":["/path/to/repo"],"filters":{"status":"open,in_progress","project":"Core","q":"checkout"},"openBrowser":false,"idleSeconds":120,"lifetimeSeconds":900}
+/beads-viewer:open {"repositories":["/path/to/first","/path/to/second"],"filters":{"status":"open,in_progress"}}
 ```
 
-The main-conversation relay occupies this Claude turn and uses its normal model,
-authentication, permissions and usage limits. It waits at most ten seconds per tool
-call and stops on interruption/disconnect/expiry. MCP alone does not start inference.
-Real invoking-session/browser acceptance is still unverified in this restricted
-environment; do not equate component discovery with successful inference.
+### Automatic Human view through Channels
+
+After installing through the local marketplace below, start Claude in a terminal with:
+
+```sh
+claude --dangerously-load-development-channels plugin:beads-viewer@beads-viewer-local
+```
+
+Claude asks for interactive confirmation because custom Channels are a research
+preview. Opt in to this plugin only; normal tool permissions and organization
+policies still apply. No extra provider API key, SDK worker or host-setting edit
+is required by the plugin. See the [official reference](https://code.claude.com/docs/en/channels-reference).
+Then invoke `/beads-viewer:open` as usual. The browser shows channel readiness after
+Claude acknowledges the probe. Each Generate briefing click sends a single event
+into this session, which claims and completes that request, then returns control.
+There is no idle model polling. When Claude is busy, events wait for the next turn;
+actual generation occupies a normal turn. The VS Code extension runs Claude without
+an interactive terminal, where Claude ignores the development-channel flag, so VS
+Code conversations use the manual fallback below.
+
+### Manual Human view fallback
+
+If Channels are unavailable, blocked, or not delivering, click Generate briefing
+and copy the displayed `/beads-viewer:brief {…}` command into the conversation that
+opened the viewer. It generates exactly that briefing, then ends its turn. The
+command contains request IDs, never authentication credentials. Cached summaries
+and task management continue independently.
+
+Idle Claude turns no longer disconnect the viewer. The default connection lasts
+until explicit Disconnect or MCP shutdown; an optional lifetimeSeconds can impose
+a limit. Queued requests expire after 30 minutes and claimed work after 15;
+failed/cancelled work can be generated again. Each claim lists the exact source
+IDs a briefing may cite. Existing annotations and summary history remain intact.
 
 To check prerequisites without opening a browser/listener:
 
 ```sh
-node "/absolute/path/to/beads-viewer-0.2.1-claude-code/launch.cjs" --check
+node "/absolute/path/to/beads-viewer-0.3.2-claude-code/launch.cjs" --check
 ```
 
 ## Persistent local marketplace
@@ -77,7 +107,17 @@ claude plugin marketplace add "/absolute/path/to/artifacts/beads-viewer-local-ma
 claude plugin install beads-viewer@beads-viewer-local
 ```
 
-Restart Claude and inspect `/mcp`. To uninstall only this plugin:
+Each package is staged in its own `plugins/beads-viewer/claude-code-<version>`
+folder, and the marketplace points at the newest. Claude reads this directory
+marketplace in place when a conversation starts, so after `npm run package:plugin`
+start a **new** conversation (terminal: restart `claude`; VS Code: new conversation
+or Developer: Reload Window). No `claude plugin update` is needed; `claude plugin
+list` shows the version and folder that new conversations will load, and
+`/beads-viewer:open` plus the browser footer report the running version. Already
+open conversations keep their original version until restarted. If one still calls
+`next_request` or reports "Claude relay disconnected", it is running a 0.2 build.
+
+To uninstall only this plugin:
 
 ```sh
 claude plugin uninstall beads-viewer@beads-viewer-local

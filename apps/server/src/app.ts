@@ -43,6 +43,8 @@ export class Application {
 	readonly instanceId = randomUUID();
 	readonly bridge: Bridge;
 	origin = "http://127.0.0.1:0";
+	/** Version of the code serving this viewer, shown in the browser. */
+	version = "development";
 	private credentials = new Map<
 		string,
 		{
@@ -54,6 +56,8 @@ export class Application {
 	private sessions = new Map<string, Session>();
 	private scopes = new Map<string, Set<string>>();
 	private locks = new Map<string, Promise<unknown>>();
+	// Open browser event streams per connection; Beads is polled only while watched.
+	private listeners = new Map<string, number>();
 	private poll?: ReturnType<typeof setInterval>;
 	constructor(
 		readonly store: Store,
@@ -112,7 +116,7 @@ export class Application {
 			failures,
 			notices,
 			notice:
-				"Same-turn relay occupies this Claude conversation until disconnected, interrupted, idle, or its lifetime limit is reached.",
+				"Viewer opened. Return control to the user now; do not poll or disconnect. Human view requests use an enabled Claude channel or the browser's one-request briefing command.",
 		};
 	}
 	async register(
@@ -163,6 +167,7 @@ export class Application {
 			connection: this.bridge.state(connectionId),
 			observedAt: new Date().toISOString(),
 			allowedRepositories: [],
+			viewerVersion: this.version,
 		};
 	}
 	private session(request: Request) {
@@ -205,7 +210,8 @@ export class Application {
 			this.checkOrigin(request);
 			const url = new URL(request.url),
 				path = url.pathname;
-			if (path === "/health") return json({ instanceId: this.instanceId });
+			if (path === "/health")
+				return json({ instanceId: this.instanceId, version: this.version });
 			if (path === "/api/exchange" && request.method === "POST") {
 				const { credential } = z
 					.object({ credential: z.string().min(40).max(100) })
@@ -465,9 +471,9 @@ export class Application {
 					.object({ anchor, text: z.string().min(1).max(100000) })
 					.strict()
 					.parse(body);
-				await this.validateAnchor(r, taskId, x.anchor);
+				const anchored = await this.validateAnchor(r, taskId, x.anchor);
 				result = this.store.add(
-					x.anchor,
+					anchored,
 					x.text,
 					`Local ${userInfo().username}`,
 				);
@@ -481,7 +487,7 @@ export class Application {
 					})
 					.strict()
 					.parse(body);
-				if (x.anchor) await this.validateAnchor(r, taskId, x.anchor);
+				if (x.anchor) x.anchor = await this.validateAnchor(r, taskId, x.anchor);
 				result = this.store.edit(
 					workspaceId,
 					taskId,
@@ -494,10 +500,16 @@ export class Application {
 			return json(result);
 		});
 	}
-	private async validateAnchor(r: Repository, taskId: string, a: Anchor) {
+	/** Validates a quote and returns the anchor to store. */
+	private async validateAnchor(
+		r: Repository,
+		taskId: string,
+		a: Anchor,
+	): Promise<Anchor> {
 		if (a.workspaceId !== r.workspaceId || a.taskId !== taskId)
 			throw new AppError(400, "Annotation identity mismatch");
 		let value: string;
+		let current = a.sourceRevision;
 		if (a.view === "human") {
 			const s = this.store
 				.summaries(r.workspaceId, taskId)
@@ -509,8 +521,7 @@ export class Application {
 			value = b.text;
 		} else {
 			const t = await this.beads.detail(r, taskId);
-			if (t.revision !== a.sourceRevision)
-				throw new AppError(409, "Task source changed; select text again");
+			current = t.revision;
 			const allowed = [
 				"title",
 				"description",
@@ -523,15 +534,23 @@ export class Application {
 			value = String(t[a.blockId as keyof typeof t] || "");
 		}
 		const s = markdownText(value);
-		if (
-			s.slice(a.start, a.end) !== a.exact ||
-			s.slice(Math.max(0, a.start - a.prefix.length), a.start) !== a.prefix ||
-			s.slice(a.end, a.end + a.suffix.length) !== a.suffix
-		)
+		const matches =
+			s.slice(a.start, a.end) === a.exact &&
+			s.slice(Math.max(0, a.start - a.prefix.length), a.start) === a.prefix &&
+			s.slice(a.end, a.end + a.suffix.length) === a.suffix;
+		if (current !== a.sourceRevision) {
+			// The task changed after the text was selected (for example a Beads comment
+			// was added). The quote still anchors if this field's text is unchanged.
+			if (!matches)
+				throw new AppError(409, "Task source changed; select text again");
+			return { ...a, sourceRevision: current };
+		}
+		if (!matches)
 			throw new AppError(
 				409,
 				"Selected quote does not match the canonical source",
 			);
+		return a;
 	}
 	private events(connectionId: string, signal: AbortSignal) {
 		let clean = () => {};
@@ -552,10 +571,20 @@ export class Application {
 						clean();
 					}
 				}, 10000);
+				this.listeners.set(
+					connectionId,
+					(this.listeners.get(connectionId) || 0) + 1,
+				);
+				let cleaned = false;
 				clean = () => {
+					if (cleaned) return;
+					cleaned = true;
 					clearInterval(timer);
 					this.bridge.off("change", send);
 					signal.removeEventListener("abort", abort);
+					const left = (this.listeners.get(connectionId) || 1) - 1;
+					if (left > 0) this.listeners.set(connectionId, left);
+					else this.listeners.delete(connectionId);
 				};
 				const abort = () => {
 					clean();
@@ -587,11 +616,10 @@ export class Application {
 			if (running) return;
 			running = true;
 			try {
+				// Connections no longer expire while Claude is idle, so only poll
+				// Beads for viewers that currently have a browser tab listening.
 				for (const [connectionId] of this.scopes) {
-					if (
-						this.bridge.state(connectionId).state === "connected" ||
-						this.sessions.size
-					) {
+					if (this.listeners.get(connectionId)) {
 						const s = await this.snapshot(connectionId),
 							revision = hash({
 								tasks: s.tasks.map((t) => [t.workspaceId, t.id, t.revision]),

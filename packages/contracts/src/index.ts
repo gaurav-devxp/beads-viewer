@@ -169,9 +169,10 @@ export interface ConnectionState {
 	sessionId: string;
 	host: "claude-code" | "codex";
 	state: "connected" | "disconnected" | "expired";
+	delivery: "manual" | "channel";
 	createdAt: number;
 	lastSeen: number;
-	expiresAt: number;
+	expiresAt: number | null;
 	reason?: string;
 }
 export interface AIRequest {
@@ -186,6 +187,7 @@ export interface AIRequest {
 	deadline: number;
 	state: "queued" | "running" | "complete" | "failed" | "cancelled";
 	error?: string;
+	deliveryError?: string;
 	result?: Summary;
 }
 export interface Snapshot {
@@ -201,6 +203,8 @@ export interface Snapshot {
 		name: string;
 		registered: boolean;
 	}[];
+	/** Version of the running viewer code (helps spot a stale Claude session). */
+	viewerVersion?: string;
 }
 export interface Detail {
 	task: Task;
@@ -220,8 +224,9 @@ export const launchOptions = z
 				tab: z.enum(["agent", "human"]).default("agent"),
 			})
 			.optional(),
-		idleSeconds: z.number().int().min(30).max(600).default(120),
-		lifetimeSeconds: z.number().int().min(60).max(1800).default(900),
+		// Retained for old callers; idle Claude turns no longer expire a viewer.
+		idleSeconds: z.number().int().min(30).max(600).optional(),
+		lifetimeSeconds: z.number().int().min(60).max(86400).optional(),
 	})
 	.strict();
 export type LaunchOptions = z.infer<typeof launchOptions>;
